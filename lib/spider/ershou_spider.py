@@ -18,7 +18,7 @@ import lib.utility.version
 
 
 class ErShouSpider(BaseSpider):
-    def collect_area_ershou_data(self, city_name, area_name, fmt="csv"):
+    def collect_area_ershou_data(self, city_name, district_name, fmt="csv"):
         """
         对于每个板块,获得这个板块下所有二手房的信息
         并且将这些信息写入文件保存
@@ -27,11 +27,11 @@ class ErShouSpider(BaseSpider):
         :param fmt: 保存文件格式
         :return: None
         """
-        district_name = area_dict.get(area_name, "")
-        csv_file = self.today_path + "/{0}_{1}.csv".format(district_name, area_name)
+        # district_name = area_dict.get(area_name, "")
+        csv_file = self.today_path + "/{0}.csv".format(district_name)
         with open(csv_file, "w") as f:
             # 开始获得需要的板块数据
-            ershous = self.get_area_ershou_info(city_name, area_name)
+            ershous = self.get_area_ershou_info(city_name,district_name)
             # 锁定，多线程读写
             if self.mutex.acquire(1):
                 self.total_num += len(ershous)
@@ -41,10 +41,10 @@ class ErShouSpider(BaseSpider):
                 for ershou in ershous:
                     # print(date_string + "," + xiaoqu.text())
                     f.write(self.date_string + "," + ershou.text() + "\n")
-        print("Finish crawl area: " + area_name + ", save data to : " + csv_file)
+        print("Finish crawl ,save data to : " + csv_file)
 
     @staticmethod
-    def get_area_ershou_info(city_name, area_name):
+    def get_area_ershou_info(city_name, district_name):
         """
         通过爬取页面获得城市指定版块的二手房信息
         :param city_name: 城市
@@ -52,14 +52,14 @@ class ErShouSpider(BaseSpider):
         :return: 二手房数据列表
         """
         total_page = 1
-        district_name = area_dict.get(area_name, "")
+        # district_name = area_dict.get(area_name, "")
         # 中文区县
         chinese_district = get_chinese_district(district_name)
         # 中文版块
-        chinese_area = chinese_area_dict.get(area_name, "")
+        # chinese_area = chinese_area_dict.get(district_name, "")
 
         ershou_list = list()
-        page = 'http://{0}.{1}.com/ershoufang/{2}/'.format(city_name, SPIDER_NAME, area_name)
+        page = 'http://{0}.{1}.com/ershoufang/{2}/'.format(city_name, SPIDER_NAME, district_name)
         print(page)  # 打印版块页面地址
         headers = create_headers()
         response = requests.get(page, timeout=10, headers=headers)
@@ -72,12 +72,12 @@ class ErShouSpider(BaseSpider):
             matches = re.search('.*"totalPage":(\d+),.*', str(page_box))
             total_page = int(matches.group(1))
         except Exception as e:
-            print("\tWarning: only find one page for {0}".format(area_name))
+            print("\tWarning: only find one page for {0}".format(district_name))
             print(e)
 
         # 从第一页开始,一直遍历到最后一页
         for num in range(1, total_page + 1):
-            page = 'http://{0}.{1}.com/ershoufang/{2}/pg{3}'.format(city_name, SPIDER_NAME, area_name, num)
+            page = 'http://{0}.{1}.com/ershoufang/{2}/pg{3}'.format(city_name, SPIDER_NAME, district_name, num)
             print(page)  # 打印每一页的地址
             headers = create_headers()
             BaseSpider.random_delay()
@@ -91,18 +91,18 @@ class ErShouSpider(BaseSpider):
                 price = house_elem.find('div', class_="totalPrice")
                 name = house_elem.find('div', class_='title')
                 desc = house_elem.find('div', class_="houseInfo")
-                pic = house_elem.find('a', class_="img").find('img', class_="lj-lazy")
+                # pic = house_elem.find('a', class_="img").find('img', class_="lj-lazy")
 
                 # 继续清理数据
                 price = price.text.strip()
                 name = name.text.replace("\n", "")
                 desc = desc.text.replace("\n", "").strip()
-                pic = pic.get('data-original').strip()
+                # pic = pic.get('data-original').strip()
                 # print(pic)
 
 
                 # 作为对象保存
-                ershou = ErShou(chinese_district, chinese_area, name, price, desc, pic)
+                ershou = ErShou(chinese_district, name, price, desc)
                 ershou_list.append(ershou)
         return ershou_list
 
@@ -118,22 +118,22 @@ class ErShouSpider(BaseSpider):
         print('Districts: {0}'.format(districts))
 
         # 获得每个区的板块, area: 板块
-        areas = list()
-        for district in districts:
-            areas_of_district = get_areas(city, district)
-            print('{0}: Area list:  {1}'.format(district, areas_of_district))
-            # 用list的extend方法,L1.extend(L2)，该方法将参数L2的全部元素添加到L1的尾部
-            areas.extend(areas_of_district)
-            # 使用一个字典来存储区县和板块的对应关系, 例如{'beicai': 'pudongxinqu', }
-            for area in areas_of_district:
-                area_dict[area] = district
-        print("Area:", areas)
-        print("District and areas:", area_dict)
+        # areas = list()
+        # for district in districts:
+        #     areas_of_district = get_areas(city, district)
+        #     print('{0}: Area list:  {1}'.format(district, areas_of_district))
+        #     # 用list的extend方法,L1.extend(L2)，该方法将参数L2的全部元素添加到L1的尾部
+        #     areas.extend(areas_of_district)
+        #     # 使用一个字典来存储区县和板块的对应关系, 例如{'beicai': 'pudongxinqu', }
+        #     for area in areas_of_district:
+        #         area_dict[area] = district
+        # print("Area:", areas)
+        # print("District and areas:", area_dict)
 
         # 准备线程池用到的参数
-        nones = [None for i in range(len(areas))]
-        city_list = [city for i in range(len(areas))]
-        args = zip(zip(city_list, areas), nones)
+        nones = [None for i in range(len(districts))]
+        city_list = [city for i in range(len(districts))]
+        args = zip(zip(city_list, districts), nones)
         # areas = areas[0: 1]   # For debugging
 
         # 针对每个板块写一个文件,启动一个线程来操作
@@ -146,7 +146,7 @@ class ErShouSpider(BaseSpider):
 
         # 计时结束，统计结果
         t2 = time.time()
-        print("Total crawl {0} areas.".format(len(areas)))
+        print("Total crawl {0} districts.".format(len(districts)))
         print("Total cost {0} second to crawl {1} data items.".format(t2 - t1, self.total_num))
 
 
