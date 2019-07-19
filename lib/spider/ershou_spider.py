@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 from lib.item.ershou import *
 from lib.zone.city import get_city
 from lib.zone.decorate import get_decorate_list
-from lib.spider.base_spider import *
+from lib.spider import *
 from lib.utility.date import *
 from lib.utility.path import *
 from lib.zone.area import *
@@ -18,7 +18,7 @@ from lib.utility.log import *
 import lib.utility.version
 
 
-class ErShouSpider(BaseSpider):
+class ErShouSpider(base_spider.BaseSpider):
     def collect_area_ershou_data(self, city_name, district_name, fmt="csv"):
         """
         对于每个板块,获得这个板块下所有二手房的信息
@@ -33,16 +33,17 @@ class ErShouSpider(BaseSpider):
         with open(csv_file, "w",newline='',encoding='utf-8-sig') as f:
             # 开始获得需要的板块数据
             ershous = self.get_area_ershou_info(city_name,district_name)
-            # 锁定，多线程读写
-            if self.mutex.acquire(1):
-                self.total_num += len(ershous)
-                # 释放
-                self.mutex.release()
-            if fmt == "csv":
-                for ershou in ershous:
-                    # print(date_string + "," + xiaoqu.text())
-                    f.write(self.date_string + "," + ershou.text() + "\n")
-        print("Finish crawl ,save data to : " + csv_file)
+            if len(ershous) > 1:
+                # 锁定，多线程读写
+                if self.mutex.acquire(1):
+                    self.total_num += len(ershous)
+                    # 释放
+                    self.mutex.release()
+                if fmt == "csv":
+                    for ershou in ershous:
+                        # print(date_string + "," + xiaoqu.text())
+                        f.write(self.date_string + "," + ershou.text() + "\n")
+            print("Finish crawl ,save data to : " + csv_file)
 
     @staticmethod
     def get_area_ershou_info(city_name, district_name):
@@ -62,7 +63,7 @@ class ErShouSpider(BaseSpider):
 
         ershou_list = list()
         ershou_list.append(ErShou("区","小区","户型","面积","装修","标题","价格","描述","地址"))
-        page = 'http://{0}.{1}.com/ershoufang/{2}/'.format(city_name, SPIDER_NAME, district_name)
+        page = 'http://{0}.{1}.com/ershoufang/{2}/'.format(city_name, base_spider.SPIDER_NAME, district_name)
         print(page)  # 打印版块页面地址
         headers = create_headers()
         response = requests.get(page, timeout=10, headers=headers)
@@ -78,13 +79,14 @@ class ErShouSpider(BaseSpider):
             print("\tWarning: only find one page for {0}".format(district_name))
             print(e)
 
-        # 从第一页开始,一直遍历到最后一页
+
         for decorate_code,decorate_type in decorate_list.items():
+            #第一页开始,一直遍历到最后一页
             for num in range(1, total_page + 1):
-                page = 'http://{0}.{1}.com/ershoufang/{2}/pg{3}{4}'.format(city_name, SPIDER_NAME, district_name, num,decorate_code)
+                page = 'http://{0}.{1}.com/ershoufang/{2}/pg{3}{4}'.format(city_name, base_spider.SPIDER_NAME, district_name, num,decorate_code)
                 print(page)  # 打印每一页的地址
                 headers = create_headers()
-                BaseSpider.random_delay()
+                base_spider.BaseSpider.random_delay()
                 response = requests.get(page, timeout=10, headers=headers)
                 html = response.content
                 soup = BeautifulSoup(html, "lxml")
@@ -96,12 +98,16 @@ class ErShouSpider(BaseSpider):
                     name = house_elem.find('div', class_='title')
                     desc = house_elem.find('div', class_="houseInfo")
                     position = house_elem.find('div',class_="positionInfo")
-                    url = house_elem.find('a', class_="img VIEWDATA CLICKDATA maidian-detail")
-
+                    #链家与贝壳跳转链接获取不一样
+                    if(base_spider.SPIDER_NAME == base_spider.BEIKE_SPIDER):
+                        url = house_elem.find('a', class_="img VIEWDATA CLICKDATA maidian-detail")
+                    else:
+                        url = house_elem.find('div', class_="title").find('a') 
                     # 继续清理数据
                     price = price.text.strip()
                     name = name.text.replace("\n", "")
                     desc = desc.text.replace("\n", "").replace(' ', '').strip()
+                    #判断分割符
                     if(desc.find("|")):
                         descs = desc.split("|")
                     else:
@@ -125,7 +131,7 @@ class ErShouSpider(BaseSpider):
 
     def start(self):
         city = get_city()
-        self.today_path = create_date_path("{0}/ershou".format(SPIDER_NAME), city, self.date_string)
+        self.today_path = create_date_path("{0}/ershou".format(base_spider.SPIDER_NAME), city, self.date_string)
 
         t1 = time.time()  # 开始计时
 
@@ -154,7 +160,7 @@ class ErShouSpider(BaseSpider):
         # areas = areas[0: 1]   # For debugging
 
         # 针对每个板块写一个文件,启动一个线程来操作
-        pool_size = thread_pool_size
+        pool_size = base_spider.thread_pool_size
         pool = threadpool.ThreadPool(pool_size)
         my_requests = threadpool.makeRequests(self.collect_area_ershou_data, args)
         [pool.putRequest(req) for req in my_requests]

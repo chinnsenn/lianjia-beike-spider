@@ -10,7 +10,7 @@ import time
 from lib.zone.city import get_chinese_city
 from lib.request.headers import create_headers
 from lib.utility.date import get_date_string
-from lib.spider.base_spider import SPIDER_NAME
+from lib.spider import base_spider
 from lib.utility.path import DATA_PATH
 from tomorrow import threads
 import requests
@@ -22,7 +22,7 @@ def get_ershou_img_urls(city):
     # 获得 csv 文件路径
     # date = "20180331"   # 指定采集数据的日期
     # city = "sh"         # 指定采集数据的城市
-    csv_dir = "{0}/{1}/ershou/{2}/{3}".format(DATA_PATH, SPIDER_NAME, city, date)
+    csv_dir = "{0}/{1}/ershou/{2}/{3}".format(DATA_PATH, base_spider.SPIDER_NAME, city, date)
 
     files = list()
     if not os.path.exists(csv_dir):
@@ -84,6 +84,6 @@ if __name__ == '__main__':
     urls = get_ershou_img_urls(city)
 
     date = get_date_string()
-    csv_dir = "{0}/{1}/ershou/{2}/{3}".format(DATA_PATH, SPIDER_NAME, city, date)
+    csv_dir = "{0}/{1}/ershou/{2}/{3}".format(DATA_PATH, base_spider.SPIDER_NAME, city, date)
     to_do = [download_images("{0}/{1}.jpg".format(csv_dir, i), urls[i]) for i in range(len(urls))]
     print("Start to download, please wait...")
