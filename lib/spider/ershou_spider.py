@@ -9,6 +9,7 @@ import threadpool
 from bs4 import BeautifulSoup
 from lib.item.ershou import *
 from lib.zone.city import get_city
+from lib.zone.decorate import get_decorate_list
 from lib.spider.base_spider import *
 from lib.utility.date import *
 from lib.utility.path import *
@@ -29,7 +30,7 @@ class ErShouSpider(BaseSpider):
         """
         # district_name = area_dict.get(area_name, "")
         csv_file = self.today_path + "/{0}.csv".format(district_name)
-        with open(csv_file, "w") as f:
+        with open(csv_file, "w",newline='',encoding='utf-8-sig') as f:
             # 开始获得需要的板块数据
             ershous = self.get_area_ershou_info(city_name,district_name)
             # 锁定，多线程读写
@@ -55,10 +56,12 @@ class ErShouSpider(BaseSpider):
         # district_name = area_dict.get(area_name, "")
         # 中文区县
         chinese_district = get_chinese_district(district_name)
+        decorate_list = get_decorate_list()
         # 中文版块
         # chinese_area = chinese_area_dict.get(district_name, "")
 
         ershou_list = list()
+        ershou_list.append(ErShou("区","小区","户型","面积","装修","标题","价格","描述","地址"))
         page = 'http://{0}.{1}.com/ershoufang/{2}/'.format(city_name, SPIDER_NAME, district_name)
         print(page)  # 打印版块页面地址
         headers = create_headers()
@@ -76,34 +79,48 @@ class ErShouSpider(BaseSpider):
             print(e)
 
         # 从第一页开始,一直遍历到最后一页
-        for num in range(1, total_page + 1):
-            page = 'http://{0}.{1}.com/ershoufang/{2}/pg{3}'.format(city_name, SPIDER_NAME, district_name, num)
-            print(page)  # 打印每一页的地址
-            headers = create_headers()
-            BaseSpider.random_delay()
-            response = requests.get(page, timeout=10, headers=headers)
-            html = response.content
-            soup = BeautifulSoup(html, "lxml")
+        for decorate_code,decorate_type in decorate_list.items():
+            for num in range(1, total_page + 1):
+                page = 'http://{0}.{1}.com/ershoufang/{2}/pg{3}{4}'.format(city_name, SPIDER_NAME, district_name, num,decorate_code)
+                print(page)  # 打印每一页的地址
+                headers = create_headers()
+                BaseSpider.random_delay()
+                response = requests.get(page, timeout=10, headers=headers)
+                html = response.content
+                soup = BeautifulSoup(html, "lxml")
 
-            # 获得有小区信息的panel
-            house_elements = soup.find_all('li', class_="clear")
-            for house_elem in house_elements:
-                price = house_elem.find('div', class_="totalPrice")
-                name = house_elem.find('div', class_='title')
-                desc = house_elem.find('div', class_="houseInfo")
-                # pic = house_elem.find('a', class_="img").find('img', class_="lj-lazy")
+                # 获得有小区信息的panelhz
+                house_elements = soup.find_all('li', class_="clear")
+                for house_elem in house_elements:
+                    price = house_elem.find('div', class_="totalPrice")
+                    name = house_elem.find('div', class_='title')
+                    desc = house_elem.find('div', class_="houseInfo")
+                    position = house_elem.find('div',class_="positionInfo")
+                    url = house_elem.find('a', class_="img VIEWDATA CLICKDATA maidian-detail")
 
-                # 继续清理数据
-                price = price.text.strip()
-                name = name.text.replace("\n", "")
-                desc = desc.text.replace("\n", "").strip()
-                # pic = pic.get('data-original').strip()
-                # print(pic)
-
-
-                # 作为对象保存
-                ershou = ErShou(chinese_district, name, price, desc)
-                ershou_list.append(ershou)
+                    # 继续清理数据
+                    price = price.text.strip()
+                    name = name.text.replace("\n", "")
+                    desc = desc.text.replace("\n", "").replace(' ', '').strip()
+                    if(desc.find("|")):
+                        descs = desc.split("|")
+                    else:
+                        descs = desc.split("/")
+                    url = url.get('href').strip()
+                    position = position.text.replace("\n", "")
+                    if(position is None):
+                        community = descs[0]
+                    else:
+                        community = position
+                    for x in descs:
+                        if "室" in x:
+                            house_type = x
+                        if "米" in x:
+                            acreage = x
+                    # print(pic)
+                    # 作为对象保存
+                    ershou = ErShou(chinese_district,community,house_type,acreage,decorate_type, name, price, desc, url)
+                    ershou_list.append(ershou)
         return ershou_list
 
     def start(self):
