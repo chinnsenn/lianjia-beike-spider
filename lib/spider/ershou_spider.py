@@ -114,10 +114,11 @@ class ErShouSpider(base_spider.BaseSpider):
                         descs = desc.split("/")
                     url = url.get('href').strip()
                     position = position.text.replace("\n", "")
-                    if(position is None):
-                        community = descs[0]
-                    else:
+                    community = '' 
+                    if position is not None and '层' not in position:
                         community = position
+                    else:
+                        community = descs[0]
                     for x in descs:
                         if "室" in x:
                             house_type = x
