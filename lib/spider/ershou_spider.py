@@ -105,7 +105,7 @@ class ErShouSpider(base_spider.BaseSpider):
                         url = house_elem.find('div', class_="title").find('a') 
                     # 继续清理数据
                     price = price.text.strip()
-                    name = name.text.replace("\n", "")
+                    name = name.text.replace("\n", "").replace(",", "，")
                     desc = desc.text.replace("\n", "").replace(' ', '').strip()
                     #判断分割符
                     if(desc.find("|")):
