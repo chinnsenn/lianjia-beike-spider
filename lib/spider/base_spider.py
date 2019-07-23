@@ -19,6 +19,7 @@ thread_pool_size = 50
 RANDOM_DELAY =True
 LIANJIA_SPIDER = "lianjia"
 BEIKE_SPIDER = "ke"
+NINGBO_SPIDER = "ningbo"
 SPIDER_NAME = LIANJIA_SPIDER
 
 class BaseSpider(object):
