@@ -66,7 +66,7 @@ class ErShouAjkSpider(base_spider.BaseSpider):
         page = 'https://nb.anjuke.com/sale/'
         print(page)  # 打印版块页面地址
         headers = create_headers()
-        response = requests.get(page, timeout=10, headers=headers)
+        response = requests.get(page, timeout=10000, headers=headers)
 
         if 'captcha' in response.url:
             raise RuntimeError("无法获取网页内容，网站可能添加验证码验证，请打开网页 https://nb.anjuke.com/sale/  ，手动通过验证后重试")
@@ -105,7 +105,7 @@ class ErShouAjkSpider(base_spider.BaseSpider):
                         decorate_code, num)
                     print(page)  # 打印版块页面地址
                     headers = create_headers()
-                    response = requests.get(page, timeout=10, headers=headers)
+                    response = requests.get(page, timeout=10000, headers=headers)
                     if response.url != page:
                         if 'captcha' in response.url:
                             raise RuntimeError("无法获取网页内容，网站可能添加验证码验证，请打开网页 https://nb.anjuke.com/sale/  ，手动通过验证后重试")

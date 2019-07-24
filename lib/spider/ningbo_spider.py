@@ -54,7 +54,7 @@ class NingboSpider(base_spider.BaseSpider):
         page = 'https://esf.cnnbfdc.com/contract'
         print(page)
         headers = create_headers()
-        response = requests.get(page, timeout=20, headers=headers)
+        response = requests.get(page, timeout=10000, headers=headers)
         html = response.content
         soup = BeautifulSoup(html, "lxml")
 
@@ -75,7 +75,7 @@ class NingboSpider(base_spider.BaseSpider):
             print(page)
             headers = create_headers()
             base_spider.BaseSpider.random_delay()
-            response = requests.get(page, timeout=20, headers=headers)
+            response = requests.get(page, timeout=10000, headers=headers)
             html = response.content
             soup = BeautifulSoup(html, "lxml")
             data_table = soup.find('table',class_='layui-table')

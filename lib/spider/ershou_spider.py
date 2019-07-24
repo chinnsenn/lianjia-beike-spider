@@ -67,7 +67,7 @@ class ErShouSpider(base_spider.BaseSpider):
         page = 'http://{0}.{1}.com/ershoufang/{2}/'.format(city_name, base_spider.SPIDER_NAME, district_name)
         print(page)  # 打印版块页面地址
         headers = create_headers()
-        response = requests.get(page, timeout=10, headers=headers)
+        response = requests.get(page, timeout=10000, headers=headers)
         html = response.content
         soup = BeautifulSoup(html, "lxml")
 
@@ -87,7 +87,7 @@ class ErShouSpider(base_spider.BaseSpider):
                 print(page)  # 打印每一页的地址
                 headers = create_headers()
                 base_spider.BaseSpider.random_delay()
-                response = requests.get(page, timeout=10, headers=headers)
+                response = requests.get(page, timeout=10000, headers=headers)
                 html = response.content
                 soup = BeautifulSoup(html, "lxml")
 
