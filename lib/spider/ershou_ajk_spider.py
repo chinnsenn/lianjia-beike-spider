@@ -17,12 +17,7 @@ from lib.utility.log import *
 import lib.utility.version
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
-
-
-def not_empty(s):
-    return s and s.strip()
-def removeTag(s):
-    return s.getText()
+from tool.definetools import *
 
 class ErShouAjkSpider(base_spider.BaseSpider):
     def collect_area_ershou_data(self, fmt="csv"):
@@ -66,7 +61,7 @@ class ErShouAjkSpider(base_spider.BaseSpider):
         total_page = 1
         decorate_list = dict()
         ershou_ajk_list = list()
-        ershou_ajk_list.append(ErShou("区","小区","户型","面积","装修","标题","价格","描述","地址"))
+        ershou_ajk_list.append(ErShou("区","小区","户型","面积（平米）","装修","标题","价格(万)","描述","地址"))
 
         page = 'https://nb.anjuke.com/sale/'
         print(page)  # 打印版块页面地址
@@ -145,10 +140,10 @@ class ErShouAjkSpider(base_spider.BaseSpider):
                         #户型
                         house_type = details_item[0].strip()
                         #面积
-                        acreage = details_item[1].strip()
+                        acreage = "".join(filter(saveNum,details_item[1])) 
                         #总价
                         price = house_element.find('span', class_='price-det')
-                        price = price.find('strong').getText().strip()
+                        price = "".join(filter(saveNum,price.text))
                         
                         name = house_details.find('a')
                         #地址

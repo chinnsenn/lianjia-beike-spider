@@ -16,6 +16,7 @@ from lib.utility.path import *
 from lib.zone.area import *
 from lib.utility.log import *
 import lib.utility.version
+from tool.definetools import *
 
 
 class ErShouSpider(base_spider.BaseSpider):
@@ -62,7 +63,7 @@ class ErShouSpider(base_spider.BaseSpider):
         # chinese_area = chinese_area_dict.get(district_name, "")
 
         ershou_list = list()
-        ershou_list.append(ErShou("区","小区","户型","面积","装修","标题","价格","描述","地址"))
+        ershou_list.append(ErShou("区","小区","户型","面积(平米)","装修","标题","价格(万)","描述","地址"))
         page = 'http://{0}.{1}.com/ershoufang/{2}/'.format(city_name, base_spider.SPIDER_NAME, district_name)
         print(page)  # 打印版块页面地址
         headers = create_headers()
@@ -78,7 +79,6 @@ class ErShouSpider(base_spider.BaseSpider):
         except Exception as e:
             print("\tWarning: only find one page for {0}".format(district_name))
             print(e)
-
 
         for decorate_code,decorate_type in decorate_list.items():
             #第一页开始,一直遍历到最后一页
@@ -104,7 +104,7 @@ class ErShouSpider(base_spider.BaseSpider):
                     else:
                         url = house_elem.find('div', class_="title").find('a') 
                     # 继续清理数据
-                    price = price.text.strip()
+                    price = "".join(filter(saveNum,price.text))
                     name = name.text.replace("\n", "").replace(",", "，")
                     desc = desc.text.replace("\n", "").replace(' ', '').strip()
                     #判断分割符
@@ -123,7 +123,7 @@ class ErShouSpider(base_spider.BaseSpider):
                         if "室" in x:
                             house_type = x
                         if "米" in x:
-                            acreage = x
+                            acreage = "".join(filter(saveNum,x))
                     # print(pic)
                     # 作为对象保存
                     ershou = ErShou(chinese_district,community,house_type,acreage,decorate_type, name, price, desc, url)
