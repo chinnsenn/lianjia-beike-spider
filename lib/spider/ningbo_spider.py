@@ -15,6 +15,7 @@ from lib.utility.log import *
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 import lib.utility.version
+import datetime
 
 # w：以写方式打开， 
 # a：以追加模式打开 (从 EOF 开始, 必要时创建新文件) 
@@ -31,12 +32,9 @@ import lib.utility.version
 class NingboSpider(base_spider.BaseSpider):
     def collect_ningbo_record_data(self, fmt="csv"):
         csv_file = self.today_path + "/{0}.csv".format("ningbo")
-        if self.page_start == '1':
-            open_mode = "w"
-        else:
-            open_mode = "a+"
+        open_mode = "w"
         with open(csv_file, open_mode, newline='', encoding='utf-8-sig') as f:
-            ningbos = self.get_ningbo_record_info(self.page_start)
+            ningbos = self.get_ningbo_record_info(self.is_all,self.get_date)
             if self.mutex.acquire(1):
                 self.total_num += len(ningbos)
                 self.mutex.release()
@@ -46,11 +44,10 @@ class NingboSpider(base_spider.BaseSpider):
             print("Finish crawl ,save data to : " + csv_file)
 
     @staticmethod
-    def get_ningbo_record_info(page_start = '1'):
+    def get_ningbo_record_info(is_all = False,get_date = get_year_month_string_bias):
         total_page = 1
         ningbo_list = list()
-        if page_start == '1':
-            ningbo_list.append(Ningbo("合同签订日期","合同编号","所在区","街道（小区）","经纪机构备案名称"))
+        ningbo_list.append(Ningbo("合同签订日期","合同编号","所在区","街道（小区）","经纪机构备案名称"))
         page = 'https://esf.cnnbfdc.com/contract'
         print(page)
         headers = create_headers()
@@ -69,8 +66,10 @@ class NingboSpider(base_spider.BaseSpider):
             print("total = " + total_page)
         except Exception as e:
             print(e)
-
-        for page_num in range(int(page_start), int(total_page) + 1):
+        is_break = False
+        for page_num in range(1, int(total_page) + 1):
+            if is_break:
+                return ningbo_list
             page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(page_num)
             print(page)
             headers = create_headers()
@@ -84,6 +83,15 @@ class NingboSpider(base_spider.BaseSpider):
                 if i>0:
                     tds = house_element.findAll("td")
                     trs = list()
+                    date_data = tds[0].getText()
+                    if len(date_data) == 9:
+                        date_data = date_data[0:5] + '0' + date_data[5:9]
+                    if is_all!=True and date_data != get_date:
+                        if date_data < get_date:
+                            is_break = True
+                            break
+                        else:
+                            continue
                     for index, td in enumerate(tds):
                         if index < 4:
                             trs.append(td.getText().replace(' ','').replace("\n", "").replace("\r", "").strip())
@@ -93,9 +101,13 @@ class NingboSpider(base_spider.BaseSpider):
                     print(ningbo.text() + '\n')
                     ningbo_list.append(ningbo)
         return ningbo_list
-    def start(self,page_start = '1'):
-        self.today_path = create_date_path("ningbo_housing_estates", "ningbo", self.date_string)
-        self.page_start = page_start
+    def start(self,is_all = False, get_date = get_year_month_string_bias):
+        if is_all:
+            self.today_path = create_date_city_path("宁波房产交易网", "all", self.date_string)
+        else:
+            self.today_path = create_date_path("宁波房产交易网", get_date.replace('/',''))
+        self.get_date = get_date
+        self.is_all = is_all
         t1 = time.time()
         self.collect_ningbo_record_data()
         # 计时结束，统计结果

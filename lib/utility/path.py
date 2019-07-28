@@ -42,9 +42,16 @@ def create_city_path(site, city):
     return city_path
 
 
-def create_date_path(site, city, date):
+def create_date_city_path(site, city, date):
     city_path = create_city_path(site, city)
     date_path = city_path + "/" + date
+    if not os.path.exists(date_path):
+        os.makedirs(date_path)
+    return date_path
+
+def create_date_path(site, date):
+    site_path = create_site_path(site)
+    date_path = site_path + "/" + date
     if not os.path.exists(date_path):
         os.makedirs(date_path)
     return date_path

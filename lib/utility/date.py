@@ -33,6 +33,11 @@ def get_year_month_string():
     current = time.localtime()
     return time.strftime("%Y%m", current)
 
+def get_year_month_string_bias():
+    today=time.date.today()
+    oneday=time.timedelta(days=1) 
+    yesterday=today-oneday
+    return time.strftime("%Y/%m/%d", yesterday)
 
 if __name__ == "__main__":
     print(get_date_string())

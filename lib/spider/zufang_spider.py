@@ -15,8 +15,7 @@ from lib.zone.area import *
 from lib.zone.city import get_city
 import lib.utility.version
 
-
-class ZuFangBaseSpider(BaseSpider):
+class ZuFangBaseSpider(base_spider.BaseSpider):
     def collect_area_zufang_data(self, city_name, area_name, fmt="csv"):
         """
         对于每个板块,获得这个板块下所有出租房的信息
@@ -66,10 +65,10 @@ class ZuFangBaseSpider(BaseSpider):
         # 获得总的页数
         try:
             if SPIDER_NAME == "lianjia":
-                page_box = soup.find_all('div', class_='page-box')[0]
+                page_box = soup.findAll('div', class_='page-box')[0]
                 matches = re.search('.*"totalPage":(\d+),.*', str(page_box))
             elif SPIDER_NAME == "ke":
-                page_box = soup.find_all('div', class_='content__pg')[0]
+                page_box = soup.findAll('div', class_='content__pg')[0]
                 # print(page_box)
                 matches = re.search('.*data-totalpage="(\d+)".*', str(page_box))
             total_page = int(matches.group(1))
@@ -89,12 +88,12 @@ class ZuFangBaseSpider(BaseSpider):
             soup = BeautifulSoup(html, "lxml")
 
             # 获得有小区信息的panel
-            if SPIDER_NAME == "lianjia":
-                ul_element = soup.find('ul', class_="house-lst")
-                house_elements = ul_element.find_all('li')
-            else:
-                ul_element = soup.find('div', class_="content__list")
-                house_elements = ul_element.find_all('div', class_="content__list--item")
+            # if base_spider.SPIDER_NAME == "lianjia":
+            #     ul_element = soup.find('ul', class_="content__list")
+            #     house_elements = ul_element.findAll('li')
+            # else:
+            ul_element = soup.find('div', class_="content__list")
+            house_elements = ul_element.findAll('div', class_="content__list--item")
 
             if len(house_elements) == 0:
                 continue
@@ -102,36 +101,36 @@ class ZuFangBaseSpider(BaseSpider):
             #     print(len(house_elements))
 
             for house_elem in house_elements:
-                if SPIDER_NAME == "lianjia":
-                    price = house_elem.find('span', class_="num")
-                    xiaoqu = house_elem.find('span', class_='region')
-                    layout = house_elem.find('span', class_="zone")
-                    size = house_elem.find('span', class_="meters")
-                else:
-                    price = house_elem.find('span', class_="content__list--item-price")
-                    desc1 = house_elem.find('p', class_="content__list--item--title")
-                    desc2 = house_elem.find('p', class_="content__list--item--des")
+                # if SPIDER_NAME == "lianjia":
+                #     price = house_elem.find('span', class_="num")
+                #     xiaoqu = house_elem.find('span', class_='region')
+                #     layout = house_elem.find('span', class_="zone")
+                #     size = house_elem.find('span', class_="meters")
+                # else:
+                price = house_elem.find('span', class_="content__list--item-price")
+                desc1 = house_elem.find('p', class_="content__list--item--title")
+                desc2 = house_elem.find('p', class_="content__list--item--des")
 
                 try:
-                    if SPIDER_NAME == "lianjia":
-                        price = price.text.strip()
-                        xiaoqu = xiaoqu.text.strip().replace("\n", "")
-                        layout = layout.text.strip()
-                        size = size.text.strip()
-                    else:
-                        # 继续清理数据
-                        price = price.text.strip().replace(" ", "").replace("元/月", "")
-                        # print(price)
-                        desc1 = desc1.text.strip().replace("\n", "")
-                        desc2 = desc2.text.strip().replace("\n", "").replace(" ", "")
-                        # print(desc1)
+                    # if SPIDER_NAME == "lianjia":
+                    #     price = price.text.strip()
+                    #     xiaoqu = xiaoqu.text.strip().replace("\n", "")
+                    #     layout = layout.text.strip()
+                    #     size = size.text.strip()
+                    # else:
+                    # 继续清理数据
+                    price = price.text.strip().replace(" ", "").replace("元/月", "")
+                    # print(price)
+                    desc1 = desc1.text.strip().replace("\n", "")
+                    desc2 = desc2.text.strip().replace("\n", "").replace(" ", "")
+                    # print(desc1)
 
-                        infos = desc1.split(' ')
-                        xiaoqu = infos[0]
-                        layout = infos[1]
-                        descs = desc2.split('/')
-                        # print(descs[1])
-                        size = descs[1].replace("㎡", "平米")
+                    infos = desc1.split(' ')
+                    xiaoqu = infos[0]
+                    layout = infos[1]
+                    descs = desc2.split('/')
+                    # print(descs[1])
+                    size = descs[1].replace("㎡", "平米")
 
                     # print("{0} {1} {2} {3} {4} {5} {6}".format(
                     #     chinese_district, chinese_area, xiaoqu, layout, size, price))

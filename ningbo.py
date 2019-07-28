@@ -9,18 +9,27 @@ from lib.utility.version import PYTHON_3
 from lib.spider.ningbo_spider import *
 
 if __name__ == "__main__":
-    page_start = "请输入起始页码,直接回车从第一页开始爬取\n(注:如果从第一页开始爬取会覆盖同一天目录下同名文件的数据，注意备份):\n"
+    prompt_start = "请输入对应数字:\n 1. 爬取某日信息\n2.爬取全部信息\n(默认 1):\n"
     if not PYTHON_3:  # 如果小于Python3
-        page = raw_input(page_start)
+        page = raw_input(prompt_start)
     else:
-        page = input(page_start)
-    if page is None or len(page) == 0:
-        print("从第1页开始爬去数据")
-        spider = NingboSpider(base_spider.NINGBO_SPIDER)
-        spider.start()
-    elif int(page) < 1:
-        print("请输入有效数字")
+        page = input(prompt_start)
+    if page is None or len(page) == 0 or int(page) == 1:
+        prompt_date = "请输入日期，如 20190727:\n"
+        if not PYTHON_3:  # 如果小于Python3
+            date_str = raw_input(prompt_date)
+        else:
+            date_str = input(prompt_date)
+        date = None
+        if date_str is None or len(date_str) != 8:
+            print("请输入有效日期")
+        else:
+            date = date_str[0:4] + '/' + date_str[4:6] + '/' + date_str[6:8]
+            spider = NingboSpider(base_spider.NINGBO_SPIDER)
+            if date is None:
+                spider.start(False)
+            else:
+                spider.start(False,date)
     else:
-        print("从第" + page + "页开始爬取数据")
         spider = NingboSpider(base_spider.NINGBO_SPIDER)
-        spider.start(page)
+        spider.start(True)
