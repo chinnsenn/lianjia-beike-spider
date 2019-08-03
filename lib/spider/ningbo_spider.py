@@ -67,7 +67,7 @@ class NingboSpider(base_spider.BaseSpider):
         except Exception as e:
             print(e)
         is_break = False
-        for page_num in range(1, int(total_page) + 1):
+        for page_num in range(57, int(total_page) + 1):
             if is_break:
                 return ningbo_list
             page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(page_num)
@@ -86,6 +86,8 @@ class NingboSpider(base_spider.BaseSpider):
                     date_data = tds[0].getText()
                     if len(date_data) == 9:
                         date_data = date_data[0:5] + '0' + date_data[5:9]
+                    elif len(date_data) == 8:
+                        date_data = date_data[0:5] + '0' + date_data[5:7] + '0' + date_data[7:9]
                     if is_all!=True and date_data != get_date:
                         if date_data < get_date:
                             is_break = True
