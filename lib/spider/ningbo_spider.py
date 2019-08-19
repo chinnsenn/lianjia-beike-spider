@@ -69,8 +69,6 @@ class NingboSpider(base_spider.BaseSpider):
         is_break = False
         try:
             for page_num in range(1, int(total_page) + 1):
-                if is_break:
-                    return ningbo_list
                 page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(page_num)
                 print(page)
                 headers = create_headers()
@@ -80,21 +78,41 @@ class NingboSpider(base_spider.BaseSpider):
                 soup = BeautifulSoup(html, "lxml")
                 data_table = soup.find('table',class_='layui-table')
                 house_elements = data_table.findAll('tr')
+
+                #====================第一行=========================
+                first_house_element = house_elements[1]
+                first_tds = first_house_element.findAll("td")
+                #获取第一行数据日期
+                first_date_data = first_tds[0].getText()
+                #修正第一行日期格式
+                if len(first_date_data) == 9:
+                    first_date_data = first_date_data[0:5] + '0' + first_date_data[5:9]
+                elif len(first_date_data) == 8:
+                    first_date_data = first_date_data[0:5] + '0' + first_date_data[5:7] + '0' + first_date_data[7:9]
+
+                #====================最后一行=========================
+                last_house_element = house_elements[-1]
+                last_tds = last_house_element.findAll("td")
+                #获取第一行数据日期
+                last_date_data = last_tds[0].getText()
+                #修正第一行日期格式
+                if len(last_date_data) == 9:
+                    last_date_data = last_date_data[0:5] + '0' + last_date_data[5:9]
+                elif len(last_date_data) == 8:
+                    last_date_data = last_date_data[0:5] + '0' + last_date_data[5:7] + '0' + last_date_data[7:9]
+
+                #第一行日期不等于获取的日期
+                if is_all!=True and first_date_data != get_date:
+                    #第一日期小于获取的日期，退出
+                    if first_date_data < get_date:   
+                        return ningbo_list
+                    if first_date_data == last_date_data:
+                        continue
+
                 for i , house_element in enumerate(house_elements):
                     if i>0:
                         tds = house_element.findAll("td")
                         trs = list()
-                        date_data = tds[0].getText()
-                        if len(date_data) == 9:
-                            date_data = date_data[0:5] + '0' + date_data[5:9]
-                        elif len(date_data) == 8:
-                            date_data = date_data[0:5] + '0' + date_data[5:7] + '0' + date_data[7:9]
-                        if is_all!=True and date_data != get_date:
-                            if date_data < get_date:
-                                is_break = True
-                                break
-                            else:
-                                continue
                         for index, td in enumerate(tds):
                             if index < 4:
                                 trs.append(td.getText().replace(' ','').replace("\n", "").replace("\r", "").strip())
