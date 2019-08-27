@@ -132,7 +132,7 @@ class ErShouSpider(base_spider.BaseSpider):
 
     def start(self):
         city = get_city()
-        self.today_path = create_date_path("{0}/ershou".format(base_spider.SPIDER_NAME), city, self.date_string)
+        self.today_path = create_date_city_path("{0}/ershou".format(base_spider.SPIDER_NAME), city, self.date_string)
 
         t1 = time.time()  # 开始计时
 

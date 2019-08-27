@@ -66,7 +66,6 @@ class NingboSpider(base_spider.BaseSpider):
             print("total = " + total_page)
         except Exception as e:
             print(e)
-        is_break = False
         try:
             for page_num in range(1, int(total_page) + 1):
                 page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(page_num)
@@ -111,6 +110,17 @@ class NingboSpider(base_spider.BaseSpider):
 
                 for i , house_element in enumerate(house_elements):
                     if i>0:
+                        first_house_element = house_elements[i]
+                        first_tds = first_house_element.findAll("td")
+                        current_date_data = first_tds[0].getText()
+                        if len(current_date_data) == 9:
+                            current_date_data = current_date_data[0:5] + '0' + current_date_data[5:9]
+                        elif len(current_date_data) == 8:
+                            current_date_data = current_date_data[0:5] + '0' + current_date_data[5:7] + '0' + current_date_data[7:9]
+                        #第一行日期不等于获取的日期
+                        if is_all!=True and current_date_data != get_date:
+                            continue
+
                         tds = house_element.findAll("td")
                         trs = list()
                         for index, td in enumerate(tds):
