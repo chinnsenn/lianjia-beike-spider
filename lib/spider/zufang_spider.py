@@ -8,15 +8,18 @@ import re
 import threadpool
 from bs4 import BeautifulSoup
 from lib.item.zufang import *
-from lib.spider.base_spider import *
+from lib.zone.city import get_city
+from lib.zone.decorate import get_decorate_list
+from lib.spider import *
 from lib.utility.date import *
 from lib.utility.path import *
 from lib.zone.area import *
-from lib.zone.city import get_city
+from lib.utility.log import *
 import lib.utility.version
+from tool.definetools import *
 
 class ZuFangBaseSpider(base_spider.BaseSpider):
-    def collect_area_zufang_data(self, city_name, area_name, fmt="csv"):
+    def collect_area_zufang_data(self, city_name, district_name, fmt="csv"):
         """
         对于每个板块,获得这个板块下所有出租房的信息
         并且将这些信息写入文件保存
@@ -25,23 +28,24 @@ class ZuFangBaseSpider(base_spider.BaseSpider):
         :param fmt: 保存文件格式
         :return: None
         """
-        district_name = area_dict.get(area_name, "")
-        csv_file = self.today_path + "/{0}_{1}.csv".format(district_name, area_name)
-        with open(csv_file, "w") as f:
+        csv_file = self.today_path + "/{0}.csv".format(district_name)
+        with open(csv_file, "w",newline='',encoding='utf-8-sig') as f:
             # 开始获得需要的板块数据
-            zufangs = self.get_area_zufang_info(city_name, area_name)
-            # 锁定
-            if self.mutex.acquire(1):
-                self.total_num += len(zufangs)
-                # 释放
-                self.mutex.release()
-            if fmt == "csv":
-                for zufang in zufangs:
-                    f.write(self.date_string + "," + zufang.text() + "\n")
-        print("Finish crawl area: " + area_name + ", save data to : " + csv_file)
+            zufangs = self.get_area_zufang_info(city_name,district_name)
+            if len(zufangs) > 1:
+                # 锁定，多线程读写
+                if self.mutex.acquire(1):
+                    self.total_num += len(zufangs)
+                    # 释放
+                    self.mutex.release()
+                if fmt == "csv":
+                    for zufang in zufangs:
+                        # print(date_string + "," + xiaoqu.text())
+                        f.write(self.date_string + "," + zufang.text() + "\n")
+            print("Finish crawl ,save data to : " + csv_file)
 
     @staticmethod
-    def get_area_zufang_info(city_name, area_name):
+    def get_area_zufang_info(city_name, district_name):
         matches = None
         """
         通过爬取页面获取城市指定版块的租房信息
@@ -50,40 +54,47 @@ class ZuFangBaseSpider(base_spider.BaseSpider):
         :return: 出租房信息列表
         """
         total_page = 1
-        district_name = area_dict.get(area_name, "")
+        # district_name = area_dict.get(area_name, "")
         chinese_district = get_chinese_district(district_name)
-        chinese_area = chinese_area_dict.get(area_name, "")
+        # chinese_area = chinese_area_dict.get(area_name, "")
         zufang_list = list()
-        page = 'http://{0}.{1}.com/zufang/{2}/'.format(city_name, SPIDER_NAME, area_name)
-        print(page)
+        zufang_list.append(ZuFang("区","小区","户型","面积(平米)","价格(万)","地址"))
+        page = 'http://{0}.{1}.com/zufang/{2}/'.format(city_name,base_spider.SPIDER_NAME, district_name)
+        # print(page)
 
         headers = create_headers()
-        response = requests.get(page, timeout=10, headers=headers)
+        response = requests.get(page, timeout=1000, headers=headers)
         html = response.content
         soup = BeautifulSoup(html, "lxml")
 
         # 获得总的页数
         try:
-            if SPIDER_NAME == "lianjia":
-                page_box = soup.findAll('div', class_='page-box')[0]
-                matches = re.search('.*"totalPage":(\d+),.*', str(page_box))
-            elif SPIDER_NAME == "ke":
+            if base_spider.SPIDER_NAME == "lianjia":
                 page_box = soup.findAll('div', class_='content__pg')[0]
-                # print(page_box)
-                matches = re.search('.*data-totalpage="(\d+)".*', str(page_box))
-            total_page = int(matches.group(1))
-            # print(total_page)
+                total_page = int(page_box['data-totalpage'])
+                # matches = re.search('.*"totalPage":(\d+),.*', str(page_box))
+            elif base_spider.SPIDER_NAME == "ke":
+                page_box = soup.findAll('div', class_='content__pg')[0]
+                total_page = int(page_box['data-totalpage'])
+                # matches = re.search('.*data-totalpage="(\d+)".*', str(page_box))
+            # total_page = int(matches.group(1))
+            print("total_page"+total_page)
         except Exception as e:
-            print("\tWarning: only find one page for {0}".format(area_name))
+            print("\tWarning: only find one page for {0}".format(district_name))
             print(e)
 
         # 从第一页开始,一直遍历到最后一页
         headers = create_headers()
         for num in range(1, total_page + 1):
-            page = 'http://{0}.{1}.com/zufang/{2}/pg{3}'.format(city_name, SPIDER_NAME, area_name, num)
+            if base_spider.SPIDER_NAME == "lianjia":
+                #https://hz.lianjia.com/zufang/xihu/pg2/#contentList
+               page = 'http://hz.lianjia.com/zufang/{0}/pg{1}/#contentList'.format(district_name, num)
+            else:
+                #https://hz.zu.ke.com/zufang/xihu/pg2/#contentList
+               page = 'http://hz.zu.ke.com/zufang/{0}/pg{1}/#contentList'.format(district_name, num)
             print(page)
-            BaseSpider.random_delay()
-            response = requests.get(page, timeout=10, headers=headers)
+            base_spider.BaseSpider.random_delay()
+            response = requests.get(page, timeout=10000, headers=headers)
             html = response.content
             soup = BeautifulSoup(html, "lxml")
 
@@ -110,6 +121,8 @@ class ZuFangBaseSpider(base_spider.BaseSpider):
                 price = house_elem.find('span', class_="content__list--item-price")
                 desc1 = house_elem.find('p', class_="content__list--item--title")
                 desc2 = house_elem.find('p', class_="content__list--item--des")
+                url_suffix = house_elem.find('p', class_="content__list--item--title twoline").find('a').get('href').strip()
+                url = "https://hz.zu.ke.com" + url_suffix
 
                 try:
                     # if SPIDER_NAME == "lianjia":
@@ -136,7 +149,7 @@ class ZuFangBaseSpider(base_spider.BaseSpider):
                     #     chinese_district, chinese_area, xiaoqu, layout, size, price))
 
                     # 作为对象保存
-                    zufang = ZuFang(chinese_district, chinese_area, xiaoqu, layout, size, price)
+                    zufang = ZuFang(chinese_district, xiaoqu, layout, size, price,url)
                     zufang_list.append(zufang)
                 except Exception as e:
                     print("=" * 20 + " page no data")
@@ -147,7 +160,7 @@ class ZuFangBaseSpider(base_spider.BaseSpider):
 
     def start(self):
         city = get_city()
-        self.today_path = create_date_path("{0}/zufang".format(SPIDER_NAME), city, self.date_string)
+        self.today_path = create_date_city_path("{0}/zufang".format(base_spider.SPIDER_NAME), city, self.date_string)
         # collect_area_zufang('sh', 'beicai')  # For debugging, keep it here
         t1 = time.time()  # 开始计时
 
@@ -157,26 +170,26 @@ class ZuFangBaseSpider(base_spider.BaseSpider):
         print('Districts: {0}'.format(districts))
 
         # 获得每个区的板块, area: 板块
-        areas = list()
-        for district in districts:
-            areas_of_district = get_areas(city, district)
-            print('{0}: Area list:  {1}'.format(district, areas_of_district))
-            # 用list的extend方法,L1.extend(L2)，该方法将参数L2的全部元素添加到L1的尾部
-            areas.extend(areas_of_district)
-            # 使用一个字典来存储区县和板块的对应关系, 例如{'beicai': 'pudongxinqu', }
-            for area in areas_of_district:
-                area_dict[area] = district
-        print("Area:", areas)
-        print("District and areas:", area_dict)
+        # areas = list()
+        # for district in districts:
+        #     areas_of_district = get_areas(city, district)
+        #     print('{0}: Area list:  {1}'.format(district, areas_of_district))
+        #     # 用list的extend方法,L1.extend(L2)，该方法将参数L2的全部元素添加到L1的尾部
+        #     areas.extend(areas_of_district)
+        #     # 使用一个字典来存储区县和板块的对应关系, 例如{'beicai': 'pudongxinqu', }
+        #     for area in areas_of_district:
+        #         area_dict[area] = district
+        # print("Area:", areas)
+        # print("District and areas:", area_dict)
 
         # 准备线程池用到的参数
-        nones = [None for i in range(len(areas))]
-        city_list = [city for i in range(len(areas))]
-        args = zip(zip(city_list, areas), nones)
+        nones = [None for i in range(len(districts))]
+        city_list = [city for i in range(len(districts))]
+        args = zip(zip(city_list, districts), nones)
         # areas = areas[0: 1]
 
         # 针对每个板块写一个文件,启动一个线程来操作
-        pool_size = thread_pool_size
+        pool_size = base_spider.thread_pool_size
         pool = threadpool.ThreadPool(pool_size)
         my_requests = threadpool.makeRequests(self.collect_area_zufang_data, args)
         [pool.putRequest(req) for req in my_requests]
@@ -185,7 +198,7 @@ class ZuFangBaseSpider(base_spider.BaseSpider):
 
         # 计时结束，统计结果
         t2 = time.time()
-        print("Total crawl {0} areas.".format(len(areas)))
+        print("Total crawl {0} areas.".format(len(districts)))
         print("Total cost {0} second to crawl {1} data items.".format(t2 - t1, self.total_num))
 
 

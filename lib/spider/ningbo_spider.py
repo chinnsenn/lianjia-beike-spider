@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 from urllib.parse import parse_qs
 import lib.utility.version
 import datetime
+import urllib3
 
 # w：以写方式打开， 
 # a：以追加模式打开 (从 EOF 开始, 必要时创建新文件) 
@@ -48,14 +49,16 @@ class NingboSpider(base_spider.BaseSpider):
         total_page = 1
         ningbo_list = list()
         ningbo_list.append(Ningbo("合同签订日期","合同编号","所在区","街道（小区）","经纪机构备案名称"))
-        page = 'https://esf.cnnbfdc.com/contract'
+        page = 'https://esf.cnnbfdc.com/contract?page=2'
         print(page)
         headers = create_headers()
+        urllib3.disable_warnings()
         response = requests.get(page, timeout=10000, headers=headers,verify=False)
         html = response.content
         soup = BeautifulSoup(html, "lxml")
 
         try:
+            pagination = soup.find('ul', class_="pagination")
             pagination_last = soup.find('ul', class_="pagination").find(
                 'li', class_="PagedList-skipToLast").find('a')
             href = pagination_last.get('href')
@@ -83,23 +86,13 @@ class NingboSpider(base_spider.BaseSpider):
                 first_tds = first_house_element.findAll("td")
                 #获取第一行数据日期
                 first_date_data = first_tds[0].getText()
-                #修正第一行日期格式
-                if len(first_date_data) == 9:
-                    first_date_data = first_date_data[0:5] + '0' + first_date_data[5:9]
-                elif len(first_date_data) == 8:
-                    first_date_data = first_date_data[0:5] + '0' + first_date_data[5:7] + '0' + first_date_data[7:9]
-
+                
                 #====================最后一行=========================
                 last_house_element = house_elements[-1]
                 last_tds = last_house_element.findAll("td")
                 #获取第一行数据日期
                 last_date_data = last_tds[0].getText()
-                #修正第一行日期格式
-                if len(last_date_data) == 9:
-                    last_date_data = last_date_data[0:5] + '0' + last_date_data[5:9]
-                elif len(last_date_data) == 8:
-                    last_date_data = last_date_data[0:5] + '0' + last_date_data[5:7] + '0' + last_date_data[7:9]
-
+                
                 #第一行日期不等于获取的日期
                 if is_all!=True and first_date_data != get_date:
                     #第一日期小于获取的日期，退出
@@ -113,10 +106,6 @@ class NingboSpider(base_spider.BaseSpider):
                         first_house_element = house_elements[i]
                         first_tds = first_house_element.findAll("td")
                         current_date_data = first_tds[0].getText()
-                        if len(current_date_data) == 9:
-                            current_date_data = current_date_data[0:5] + '0' + current_date_data[5:9]
-                        elif len(current_date_data) == 8:
-                            current_date_data = current_date_data[0:5] + '0' + current_date_data[5:7] + '0' + current_date_data[7:9]
                         #第一行日期不等于获取的日期
                         if is_all!=True and current_date_data != get_date:
                             continue
@@ -138,7 +127,7 @@ class NingboSpider(base_spider.BaseSpider):
         if is_all:
             self.today_path = create_date_city_path("宁波房产交易网", "all", self.date_string)
         else:
-            self.today_path = create_date_path("宁波房产交易网", get_date.replace('/',''))
+            self.today_path = create_date_path("宁波房产交易网", get_date.replace('/','_'))
         self.get_date = get_date
         self.is_all = is_all
         t1 = time.time()

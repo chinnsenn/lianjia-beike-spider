@@ -17,7 +17,7 @@ from lib.zone.area import *
 from lib.utility.log import *
 import lib.utility.version
 from tool.definetools import *
-
+import urllib3
 
 class ErShouSpider(base_spider.BaseSpider):
     def collect_area_ershou_data(self, city_name, district_name, fmt="csv"):
@@ -66,7 +66,9 @@ class ErShouSpider(base_spider.BaseSpider):
         ershou_list.append(ErShou("区","小区","户型","面积(平米)","装修","标题","价格(万)","描述","地址"))
         page = 'http://{0}.{1}.com/ershoufang/{2}/'.format(city_name, base_spider.SPIDER_NAME, district_name)
         print(page)  # 打印版块页面地址
+
         headers = create_headers()
+        urllib3.disable_warnings()
         response = requests.get(page, timeout=10000, headers=headers)
         html = response.content
         soup = BeautifulSoup(html, "lxml")
@@ -80,12 +82,12 @@ class ErShouSpider(base_spider.BaseSpider):
             print("\tWarning: only find one page for {0}".format(district_name))
             print(e)
 
+        headers = create_headers()
         for decorate_code,decorate_type in decorate_list.items():
             #第一页开始,一直遍历到最后一页
             for num in range(1, total_page + 1):
                 page = 'http://{0}.{1}.com/ershoufang/{2}/pg{3}{4}'.format(city_name, base_spider.SPIDER_NAME, district_name, num,decorate_code)
                 print(page)  # 打印每一页的地址
-                headers = create_headers()
                 base_spider.BaseSpider.random_delay()
                 response = requests.get(page, timeout=10000, headers=headers)
                 html = response.content

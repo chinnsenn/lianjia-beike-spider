@@ -21,7 +21,7 @@ LIANJIA_SPIDER = "lianjia"
 BEIKE_SPIDER = "ke"
 NINGBO_SPIDER = "esf.cnnbfdc"
 ANJUKE_SPIDER = "nb.anjuke"
-SPIDER_NAME = LIANJIA_SPIDER
+SPIDER_NAME = BEIKE_SPIDER
 
 class BaseSpider(object):
     @staticmethod
