@@ -46,10 +46,10 @@ class NingboSpider(base_spider.BaseSpider):
 
     @staticmethod
     def get_ningbo_record_info(is_all = False,get_date = get_year_month_string_bias):
-        total_page = 1
+        total_page = 100
         ningbo_list = list()
         ningbo_list.append(Ningbo("合同签订日期","合同编号","所在区","街道（小区）","经纪机构备案名称"))
-        page = 'https://esf.cnnbfdc.com/contract?page=2'
+        page = 'https://esf.cnnbfdc.com/contract?page=1'
         print(page)
         headers = create_headers()
         urllib3.disable_warnings()
@@ -57,18 +57,17 @@ class NingboSpider(base_spider.BaseSpider):
         html = response.content
         soup = BeautifulSoup(html, "lxml")
 
-        try:
-            pagination = soup.find('ul', class_="pagination")
-            pagination_last = soup.find('ul', class_="pagination").find(
-                'li', class_="PagedList-skipToLast").find('a')
-            href = pagination_last.get('href')
-            parsed_result = urlparse(href)
-            querys = parse_qs(parsed_result.query)
-            querys = {k: v[0] for k, v in querys.items()}
-            total_page = querys['page']
-            print("total = " + total_page)
-        except Exception as e:
-            print(e)
+        # try:
+        #     pagination = soup.find('ul', class_="pagination")
+        #     pagination_last = soup.find('ul', class_="pagination").find('li', class_="PagedList-skipToLast").find('a')
+        #     href = pagination_last.get('href')
+        #     parsed_result = urlparse(href)
+        #     querys = parse_qs(parsed_result.query)
+        #     querys = {k: v[0] for k, v in querys.items()}
+        #     total_page = querys['page']
+        #     print("total = " + total_page)
+        # except Exception as e:
+        #     print(e)
         try:
             for page_num in range(1, int(total_page) + 1):
                 page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(page_num)
