@@ -29,21 +29,21 @@ class ErShouSpider(base_spider.BaseSpider):
         :param fmt: 保存文件格式
         :return: None
         """
-        # district_name = area_dict.get(area_name, "")
-        csv_file = self.today_path + "/{0}.csv".format(district_name)
-        with open(csv_file, "w",newline='',encoding='utf-8-sig') as f:
-            # 开始获得需要的板块数据
-            ershous = self.get_area_ershou_info(city_name,district_name)
-            if len(ershous) > 1:
-                # 锁定，多线程读写
-                if self.mutex.acquire(1):
-                    self.total_num += len(ershous)
-                    # 释放
-                    self.mutex.release()
-                if fmt == "csv":
-                    for ershou in ershous:
-                        # print(date_string + "," + xiaoqu.text())
-                        f.write(self.date_string + "," + ershou.text() + "\n")
+        # 开始获得需要的板块数据
+        ershous = self.get_area_ershou_info(city_name,district_name)
+        if len(ershous) > 1:
+            # district_name = area_dict.get(area_name, "")
+            csv_file = self.today_path + "/{0}.csv".format(district_name)
+            with open(csv_file, "w",newline='',encoding='utf-8-sig') as f:
+                    # 锁定，多线程读写
+                    if self.mutex.acquire(1):
+                        self.total_num += len(ershous)
+                        # 释放
+                        self.mutex.release()
+                    if fmt == "csv":
+                        for ershou in ershous:
+                            # print(date_string + "," + xiaoqu.text())
+                            f.write(self.date_string + "," + ershou.text() + "\n")
             print("Finish crawl ,save data to : " + csv_file)
 
     @staticmethod
@@ -64,26 +64,25 @@ class ErShouSpider(base_spider.BaseSpider):
 
         ershou_list = list()
         ershou_list.append(ErShou("区","小区","户型","面积(平米)","装修","标题","价格(万)","描述","地址"))
-        page = 'http://{0}.{1}.com/ershoufang/{2}/'.format(city_name, base_spider.SPIDER_NAME, district_name)
-        print(page)  # 打印版块页面地址
-
-        headers = create_headers()
-        urllib3.disable_warnings()
-        response = requests.get(page, timeout=10000, headers=headers)
-        html = response.content
-        soup = BeautifulSoup(html, "lxml")
-
-        # 获得总的页数，通过查找总页码的元素信息
-        try:
-            page_box = soup.find_all('div', class_='page-box')[0]
-            matches = re.search('.*"totalPage":(\d+),.*', str(page_box))
-            total_page = int(matches.group(1))
-        except Exception as e:
-            print("\tWarning: only find one page for {0}".format(district_name))
-            print(e)
 
         headers = create_headers()
         for decorate_code,decorate_type in decorate_list.items():
+            page = 'http://{0}.{1}.com/ershoufang/{2}/pg1{3}'.format(city_name, base_spider.SPIDER_NAME, district_name,decorate_code)
+                
+            headers = create_headers()
+            urllib3.disable_warnings()
+            response = requests.get(page, timeout=10000, headers=headers)
+            html = response.content
+            soup = BeautifulSoup(html, "lxml")
+
+            # 获得总的页数，通过查找总页码的元素信息
+            try:
+                page_box = soup.find_all('div', class_='page-box')[0]
+                matches = re.search('.*"totalPage":(\d+),.*', str(page_box))
+                total_page = int(matches.group(1))
+            except Exception as e:
+                print("\tWarning: only find one page for {0}".format(district_name))
+                print(e)
             #第一页开始,一直遍历到最后一页
             for num in range(1, total_page + 1):
                 page = 'http://{0}.{1}.com/ershoufang/{2}/pg{3}{4}'.format(city_name, base_spider.SPIDER_NAME, district_name, num,decorate_code)
