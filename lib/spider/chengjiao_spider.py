@@ -36,8 +36,8 @@ class ChengjiaoSpider(base_spider.BaseSpider):
 
         chengjiaos = self.get_area_chengjiao_info(city_name, district_name)
         if len(chengjiaos) > 1:
-            csv_file = self.today_path + "/{0}.csv".format(district_name)
-            with open(csv_file, "w", newline='', encoding='utf-8-sig') as f:
+            csv_file = self.today_path + "/chengjiao_all.csv"
+            with open(csv_file, "a", newline='', encoding='utf-8-sig') as f:
                 # 锁定，多线程读写
                 if self.mutex.acquire(1):
                     self.total_num += len(chengjiaos)

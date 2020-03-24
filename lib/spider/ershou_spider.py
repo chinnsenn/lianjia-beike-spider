@@ -33,8 +33,8 @@ class ErShouSpider(base_spider.BaseSpider):
         ershous = self.get_area_ershou_info(city_name,district_name)
         if len(ershous) > 1:
             # district_name = area_dict.get(area_name, "")
-            csv_file = self.today_path + "/{0}.csv".format(district_name)
-            with open(csv_file, "w",newline='',encoding='utf-8-sig') as f:
+            csv_file = self.today_path + "/ershou.csv"
+            with open(csv_file, "a",newline='',encoding='utf-8-sig') as f:
                     # 锁定，多线程读写
                     if self.mutex.acquire(1):
                         self.total_num += len(ershous)
