@@ -32,8 +32,10 @@ class ErShouSpider(base_spider.BaseSpider):
         # 开始获得需要的板块数据
         ershous = self.get_area_ershou_info(city_name,district_name)
         if len(ershous) > 1:
-            # district_name = area_dict.get(area_name, "")
             csv_file = self.today_path + "/ershou.csv"
+            
+            if not os.path.exists(csv_file) or os.path.getsize(csv_file) <= 0:
+                ershous.insert(0,ErShou("区","小区","户型","面积(平米)","装修","标题","价格(万)","描述","地址"))
             with open(csv_file, "a",newline='',encoding='utf-8-sig') as f:
                     # 锁定，多线程读写
                     if self.mutex.acquire(1):
@@ -63,7 +65,7 @@ class ErShouSpider(base_spider.BaseSpider):
         # chinese_area = chinese_area_dict.get(district_name, "")
 
         ershou_list = list()
-        ershou_list.append(ErShou("区","小区","户型","面积(平米)","装修","标题","价格(万)","描述","地址"))
+        # ershou_list.append(ErShou("区","小区","户型","面积(平米)","装修","标题","价格(万)","描述","地址"))
 
         headers = create_headers()
         for decorate_code,decorate_type in decorate_list.items():

@@ -5,6 +5,7 @@
 # 爬取二手房数据的爬虫派生类
 
 import re
+import os
 import threadpool
 from bs4 import BeautifulSoup
 from lib.item.chengjiao import *
@@ -20,7 +21,7 @@ from tool.definetools import *
 import urllib3
 
 
-class ChengjiaoSpider(base_spider.BaseSpider):
+class ChengjiaoLastDaySpider(base_spider.BaseSpider):
     def collect_area_chengjiao_data(self, city_name, district_name, fmt="csv"):
         """
         对于每个板块,获得这个板块下所有二手房的信息
@@ -29,17 +30,17 @@ class ChengjiaoSpider(base_spider.BaseSpider):
         :param area_name: 板块
         :param fmt: 保存文件格式
         :return: None
-        """
+        """                                                              
         # district_name = area_dict.get(area_name, "")
 
-        # 开始获得需要的板块数据
+        lastDayDate = self.get_last_day_date(city_name, district_name)
 
-        chengjiaos = self.get_area_chengjiao_info(city_name, district_name)
+        # 开始获得需要的板块数据
+        chengjiaos = self.get_area_chengjiao_info(city_name, district_name,lastDayDate)
         if len(chengjiaos) > 1:
-            csv_file = self.today_path + "/chengjiao_all.csv"
+            csv_file = self.today_path + "/chengjiao_lastday.csv"
             if not os.path.exists(csv_file) or os.path.getsize(csv_file) <= 0:
-                chengjiaos.insert(0,ChengJiao("区", "小区", "成交日期", "成交周期（天）", "挂牌价格(万)",
-                                        "楼层板楼", "户型", "面积(平米)", "标题", "价格(万)", "装修", "朝向", "地址"))
+                chengjiaos.insert(0,ChengJiao("区", "小区", "成交日期", "成交周期（天）", "挂牌价格(万)","楼层板楼", "户型", "面积(平米)", "标题", "价格(万)", "装修", "朝向", "地址"))
             with open(csv_file, "a", newline='', encoding='utf-8-sig') as f:
                 # 锁定，多线程读写
                 if self.mutex.acquire(1):
@@ -50,9 +51,31 @@ class ChengjiaoSpider(base_spider.BaseSpider):
                     for chengjiao in chengjiaos:
                         f.write(chengjiao.text() + "\n")
                 print("Finish crawl ,save data to : " + csv_file)
+                
+    def get_last_day_date(self,city_name, district_name):
+        page = 'http://{0}.{1}.com/chengjiao/pg1'.format(city_name, base_spider.SPIDER_NAME)
+        headers = create_headers()
+        urllib3.disable_warnings()
+        response = requests.get(page, timeout=10000, headers=headers)
+        html = response.content
+        soup = BeautifulSoup(html, "lxml")
+
+        # 获得总的页数，通过查找总页码的元素信息
+        try:
+            # 获得有小区信息的panelhz
+            left_content = soup.find('div', class_="leftContent").find(
+                'ul', class_="listContent")
+            house_elements = left_content.findAll('div', class_="info")
+            dealdate = house_elements[0].find('div', class_="dealDate")
+            dealdate = dealdate.text.replace(
+                    "\n", "").replace(",", "，").strip()
+        except Exception as e:
+            print("\tWarning: 只有一页".format(district_name))
+            print(e)
+        return dealdate
 
     @staticmethod
-    def get_area_chengjiao_info(city_name, district_name):
+    def get_area_chengjiao_info(city_name, district_name,lastDayDate):
         """
         通过爬取页面获得城市指定版块的二手房信息
         :param city_name: 城市
@@ -102,10 +125,13 @@ class ChengjiaoSpider(base_spider.BaseSpider):
                 'ul', class_="listContent")
             house_elements = left_content.findAll('div', class_="info")
             for house_elem in house_elements:
+                dealdate = house_elem.find('div', class_="dealDate")
+                dealdate = dealdate.text.replace("\n", "").replace(",", "，").strip()
+                if(dealdate != lastDayDate):
+                    return chengjiao_list
                 price = house_elem.find('div', class_="totalPrice")
                 name = house_elem.find('div', class_='title')
                 desc = house_elem.find('div', class_="houseInfo")
-                dealdate = house_elem.find('div', class_="dealDate")
                 positionInfo = house_elem.find('div', class_="positionInfo")
                 dealCycleTxt = house_elem.find('span', class_="dealCycleTxt")
 
@@ -118,8 +144,6 @@ class ChengjiaoSpider(base_spider.BaseSpider):
                 # 继续清理数据
                 price = "".join(filter(saveNum, price.text))
                 name = name.text.replace("\n", "").replace(",", "，")
-                dealdate = dealdate.text.replace(
-                    "\n", "").replace(",", "，").strip()
                 desc = desc.text.replace("\n", "").replace(' ', '').strip()
                 positionInfo = positionInfo.text.replace(
                     "\n", "").replace(' ', '').strip()
@@ -189,7 +213,7 @@ class ChengjiaoSpider(base_spider.BaseSpider):
         # areas = areas[0: 1]   # For debugging
 
         # 针对每个板块写一个文件,启动一个线程来操作
-        pool_size = base_spider.thread_pool_size
+        pool_size = 1
         pool = threadpool.ThreadPool(pool_size)
         my_requests = threadpool.makeRequests(
             self.collect_area_chengjiao_data, args)
