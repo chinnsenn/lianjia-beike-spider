@@ -31,7 +31,7 @@ class ErShouSpider(base_spider.BaseSpider):
         """
         # 开始获得需要的板块数据
         ershous = self.get_area_ershou_info(city_name,district_name)
-        if len(ershous) > 1:
+        if len(ershous) > 0:
             csv_file = self.today_path + "/ershou.csv"
             
             if not os.path.exists(csv_file) or os.path.getsize(csv_file) <= 0:

@@ -19,6 +19,7 @@ from lib.utility.log import *
 import lib.utility.version
 from tool.definetools import *
 import urllib3
+import datetime
 
 
 class ChengjiaoLastDaySpider(base_spider.BaseSpider):
@@ -37,7 +38,7 @@ class ChengjiaoLastDaySpider(base_spider.BaseSpider):
 
         # 开始获得需要的板块数据
         chengjiaos = self.get_area_chengjiao_info(city_name, district_name,lastDayDate)
-        if len(chengjiaos) > 1:
+        if len(chengjiaos) > 0:
             csv_file = self.today_path + "/chengjiao_lastday.csv"
             if not os.path.exists(csv_file) or os.path.getsize(csv_file) <= 0:
                 chengjiaos.insert(0,ChengJiao("区", "小区", "成交日期", "成交周期（天）", "挂牌价格(万)","楼层板楼", "户型", "面积(平米)", "标题", "价格(万)", "装修", "朝向", "地址"))
