@@ -83,22 +83,56 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                 house_elements = soup.find_all("li",class_="listbody__main__row")
 
                 for house_element in house_elements:
-                    #date, price, price_per, average, community, district, guid, agency_name, residence_type, floor, mortage_state
-                    date = house_element.find("div",class_="group-right").find("span",class_="group-right__date").text
-                    price = house_element.find("div",class_="group-right").find("span",class_="group-right__price").find("b").text.strip()
-                    averages = house_element.findAll("span",class_="group-right__average__price")
-                    price_per = averages[0].find("em").text
-                    area = averages[1].find("em").text
-                    community = house_element.find("div",class_="project-title").find("a").text
-                    district = house_element.find("small",class_="color--grey").text.replace("/","").strip()
-                    guid = house_element.find("div",class_="project-details__address").find("a").text
-                    agency_name = house_element.find("div",class_="project-details__company").find("a").text.strip()
-                    residence_type = house_element.find("span",class_="project-decorations__sign ys").text.strip()
-                    floor = house_element.find("span",class_="project-decorations__sign bpf").text.strip()
-                    mortage_state = house_element.find("span",class_="mortgage-state project-decorations__sign bpf").text.strip()
-
-                    ningbo_house = NingboHouse(date, price, price_per, area, community, district, guid, agency_name, residence_type, floor, mortage_state)
-                    ningbo_list.append(ningbo_house)
+                    try:
+                        #date, price, price_per, average, community, district, guid, agency_name, residence_type, floor, mortage_state
+                        date = house_element.find("div",class_="group-right").find("span",class_="group-right__date").text
+                        price = house_element.find("div",class_="group-right").find("span",class_="group-right__price").find("b").get_text().strip()
+                        averages = house_element.findAll("span",class_="group-right__average__price")
+                        if averages is not None:
+                            price_per = averages[0].find("em").get_text()
+                            area = averages[1].find("em").get_text()
+                        else:
+                            price_per = "无"
+                            area = "无"
+                        community = house_element.find("div",class_="project-title").find("a")
+                        if community is not None:
+                            community = community.get_text()
+                        else:
+                            community = "无"
+                        district = house_element.find("small",class_="color--grey")
+                        if district is not None:
+                            district = district.get_text().replace("/","无").strip()
+                        else:
+                            district ="无"
+                        guid = house_element.find("div",class_="project-details__address")
+                        if guid is not None:
+                            guid = guid.find("a").get_text()
+                        else:
+                            guid = "无"
+                        agency_name = house_element.find("div",class_="project-details__company").find("a")
+                        if agency_name is not None:
+                            agency_name = agency_name.get_text().strip()
+                        else:
+                            agency_name = "无"
+                        residence_type = house_element.find("span",class_="project-decorations__sign ys")
+                        if residence_type is not None:
+                            residence_type = residence_type.get_text().strip()
+                        else:
+                            residence_type = "无"
+                        floor = house_element.find("span",class_="project-decorations__sign bpf")
+                        if floor is not None:
+                            floor = floor.get_text().strip()
+                        else:
+                            floor ="无"
+                        mortage_state = house_element.find("span",class_="mortgage-state project-decorations__sign bpf")
+                        if mortage_state is not None:
+                            mortage_state = mortage_state.get_text().strip()
+                        else:
+                            mortage_state = "无"
+                        ningbo_house = NingboHouse(date, price, price_per, area, community, district, guid, agency_name, residence_type, floor, mortage_state)
+                        ningbo_list.append(ningbo_house)
+                    except AttributeError:
+                        continue
         except KeyboardInterrupt:
             return ningbo_list
         return ningbo_list
