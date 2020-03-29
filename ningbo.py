@@ -14,7 +14,7 @@ if __name__ == "__main__":
     num = input(prompt_start)
 
     if num == "1":
-        ningbo = "请输入对应数字:\n 1. 爬取某日信息\n2.爬取全部信息\n(默认 1):\n"
+        ningbo = "请输入对应数字:\n1.爬取某日信息\n2.爬取全部信息\n(默认 1):\n"
         page = input(ningbo)
         if page is None or len(page) == 0 or int(page) == 1:
             prompt_date = "请输入日期，如 2019/10/8:\n"
@@ -32,7 +32,22 @@ if __name__ == "__main__":
             spider = NingboSpider(base_spider.NINGBO_SPIDER)
             spider.start(True)
     elif num == "2":
-        spider = NingboHouseListSpider(base_spider.NINGBO_SPIDER)
-        spider.start(True)
+        crawl_all = "请输入对应数字:\n1.爬取某日信息\n2.爬取全部信息\n(默认 1):\n"
+        num = input(crawl_all)
+        if num is None or len(num) == 0 or int(num) == 1:
+            prompt_date = "请输入日期，如 2019-10-08:\n"
+            date_str = input(prompt_date)
+            date = None
+            if date_str is None:
+                print("请输入有效日期")
+            else:
+                spider = NingboHouseListSpider(base_spider.NINGBO_SPIDER)
+                if date_str is None:
+                    spider.start(None,is_all=False)
+                else:
+                    spider.start(date_str,is_all=False)
+        else:
+            spider = NingboHouseListSpider(base_spider.NINGBO_SPIDER)
+            spider.start(True)
     else:
         print("请输入有效数字")

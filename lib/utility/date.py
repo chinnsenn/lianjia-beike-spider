@@ -4,6 +4,7 @@
 # 此代码仅供学习与交流，请勿用于商业用途。
 # 日期和时间的字符串辅助函数
 
+import datetime
 import time
 
 
@@ -30,14 +31,21 @@ def get_year_month_string():
     获得形如201610这样的年月字符串
     :return:
     """
-    current = time.localtime()
-    return time.strftime("%Y%m", current)
+    current = datetime.localtime()
+    return datetime.strftime("%Y%m", current)
 
 def get_year_month_string_bias():
-    today=time.date.today()
-    oneday=time.timedelta(days=1) 
+    today=datetime.date.today()
+    oneday=datetime.timedelta(days=1) 
     yesterday=today-oneday
-    return time.strftime("%Y/%m/%d", yesterday)
+    return yesterday.strftime("%Y/%m/%d")
+
+def get_year_month_string_separator():
+    today=datetime.date.today()
+    oneday=datetime.timedelta(days=1) 
+    yesterday=today-oneday
+    return yesterday.strftime("%Y-%m-%d")
+
 
 if __name__ == "__main__":
     print(get_date_string())

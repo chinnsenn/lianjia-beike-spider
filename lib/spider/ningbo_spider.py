@@ -45,7 +45,7 @@ class NingboSpider(base_spider.BaseSpider):
             print("Finish crawl ,save data to : " + csv_file)
 
     @staticmethod
-    def get_ningbo_record_info(is_all = False,get_date = get_year_month_string_bias):
+    def get_ningbo_record_info(is_all = False,get_date = get_year_month_string_bias()):
         total_page = 100
         ningbo_list = list()
         ningbo_list.append(Ningbo("合同签订日期","合同编号","所在区","街道（小区）","经纪机构备案名称"))
@@ -122,7 +122,7 @@ class NingboSpider(base_spider.BaseSpider):
         except KeyboardInterrupt:
             return ningbo_list
         return ningbo_list
-    def start(self,is_all = False, get_date = get_year_month_string_bias):
+    def start(self,is_all = False, get_date = get_year_month_string_bias()):
         if is_all:
             self.today_path = create_date_city_path("宁波房产交易网", "all", self.date_string)
         else:

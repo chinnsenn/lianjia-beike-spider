@@ -18,6 +18,7 @@ import lib.utility.version
 import datetime
 import urllib3
 import os
+import requests
 
 # w：以写方式打开， 
 # a：以追加模式打开 (从 EOF 开始, 必要时创建新文件) 
@@ -31,14 +32,16 @@ import os
 # wb+：以二进制读写模式打开 (参见 w+ ) 
 # ab+：以二进制读写模式打开 (参见 a+ )
 
+
 class NingboHouseListSpider(base_spider.BaseSpider):
-    def collect_ningbo_record_data(self, fmt="csv"):
+    def collect_ningbo_record_data(self, total_page, threadNo=-1, fmt="csv"):
         csv_file = self.today_path + "/{0}_house_list.csv".format("ningbo")
         open_mode = "w"
         with open(csv_file, open_mode, newline='', encoding='utf-8-sig') as f:
-            ningbos = self.get_ningbo_record_info(self.is_all,self.get_date)
+            ningbos = self.get_ningbo_record_info(self.get_date,self.is_all,self.pool_size,total_page, threadNo)
             if not os.path.exists(csv_file) or os.path.getsize(csv_file) <= 0:
-                ningbos.insert(0,NingboHouse("时间","价格","单价","面积","小区","区域","核验编码","房产公司","住宅","楼层","抵押"))
+                ningbos.insert(0, NingboHouse(
+                    "时间", "价格", "单价", "面积", "小区", "区域", "核验编码", "房产公司", "住宅", "楼层", "抵押"))
             if self.mutex.acquire(1):
                 self.total_num += len(ningbos)
                 self.mutex.release()
@@ -47,21 +50,19 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                     f.write(ningbo.text() + "\n")
             print("Finish crawl ,save data to : " + csv_file)
 
-    @staticmethod
-    def get_ningbo_record_info(is_all = False,get_date = get_year_month_string_bias):
-        total_page = 2
-        ningbo_list = list()
-        #时间/价格/单价/面积/小区/区域/核验编码/房产公司/住宅/楼层/抵押/
+    def getPageSize(self):
         page = 'https://esf.cnnbfdc.com/home/houselist'
         print(page)
         headers = create_headers()
         urllib3.disable_warnings()
-        response = requests.get(page, timeout=10000, headers=headers,verify=False)
+        response = requests.get(page, timeout=10000,
+                                headers=headers, verify=False)
         html = response.content
         soup = BeautifulSoup(html, "lxml")
 
         try:
-            pagination_last = soup.find('ul', class_="pagination").find('li', class_="PagedList-skipToLast").find('a')
+            pagination_last = soup.find('ul', class_="pagination").find(
+                'li', class_="PagedList-skipToLast").find('a')
             href = pagination_last.get('href')
             parsed_result = urlparse(href)
             querys = parse_qs(parsed_result.query)
@@ -69,23 +70,69 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             total_page = querys['page']
             print("total = " + total_page)
         except Exception as e:
-            total_page = 100
+            return 100
+        return total_page
+
+    @staticmethod
+    def get_ningbo_record_info(get_date=get_year_month_string_separator(), is_all=False, pool_size = 1, total_page=100, threadNo=-1):
+        if is_all: #爬取全部数据
+            if(threadNo < pool_size - 1):
+                page_size_tread = int(int(total_page) / int(pool_size))
+                page_start = int(threadNo) * page_size_tread + 1
+                page_end = page_start + page_size_tread
+            else:
+                page_start = int(int(total_page) / int(pool_size)) * threadNo + 1
+                page_end = int(total_page) + 1
+        else:#爬取某日数据
+            page_start = 1
+            page_end = int(total_page) + 1
+
+        ningbo_list = list()
+
+        s = requests.session()
+        s.verify = False
+        urllib3.disable_warnings()
+
         try:
-            for page_num in range(1, int(total_page) + 1):
-                page = 'https://esf.cnnbfdc.com/home/houselist?page={0}'.format(page_num)
+            for page_num in range(page_start, page_end):
+                page = 'https://esf.cnnbfdc.com/home/houselist?page={0}'.format(
+                    page_num)
+
                 print(page)
-                headers = create_headers()
                 base_spider.BaseSpider.random_delay()
-                response = requests.get(page, timeout=10000, headers=headers,verify=False)
+                s.headers = create_headers()
+                urllib3.disable_warnings()
+                response = s.get(page)
                 html = response.content
                 soup = BeautifulSoup(html, "lxml")
-                
-                house_elements = soup.find_all("li",class_="listbody__main__row")
 
+                house_elements = soup.find_all(
+                    "li", class_="listbody__main__row")
+                #====================第一行=========================
+                first_house_element = house_elements[0]
+                #获取第一行数据日期
+                first_date_data = first_house_element.find("div",class_="group-right").find("span",class_="group-right__date").get_text()
+                #====================最后一行=========================
+                last_house_element = house_elements[-1] 
+                #获取第一行数据日期
+                last_date_data = last_house_element.find("div",class_="group-right").find("span",class_="group-right__date").get_text()
+                
+                #第一行日期不等于获取的日期
+                if not is_all and first_date_data != get_date:
+                    #第一日期小于获取的日期，退出
+                    if first_date_data < get_date:   
+                        return ningbo_list
+                    if first_date_data == last_date_data:
+                        continue
+                
                 for house_element in house_elements:
                     try:
                         #date, price, price_per, average, community, district, guid, agency_name, residence_type, floor, mortage_state
-                        date = house_element.find("div",class_="group-right").find("span",class_="group-right__date").text
+                        date = house_element.find("div",class_="group-right").find("span",class_="group-right__date").get_text()
+                        print("date is %s" %date)
+                        #第一行日期不等于获取的日期
+                        if not is_all  and date != get_date:
+                            continue
                         price = house_element.find("div",class_="group-right").find("span",class_="group-right__price").find("b").get_text().strip()
                         averages = house_element.findAll("span",class_="group-right__average__price")
                         if averages is not None:
@@ -133,19 +180,44 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                         ningbo_list.append(ningbo_house)
                     except AttributeError:
                         continue
-        except KeyboardInterrupt:
+        except RuntimeError or KeyboardInterrupt:
             return ningbo_list
         return ningbo_list
-    def start(self,is_all = False, get_date = get_year_month_string_bias):
-        if is_all:
-            self.today_path = create_date_city_path("宁波房产交易网", "all", self.date_string)
-        else:
-            self.today_path = create_date_path("宁波房产交易网", get_date.replace('/','_'))
-        self.get_date = get_date
-        self.is_all = is_all
-        t1 = time.time()
-        self.collect_ningbo_record_data()
 
-        # 计时结束，统计结果
-        t2 = time.time()
-        print("Total cost {0} second to crawl {1} data items.".format(t2 - t1, self.total_num))
+    def start(self,get_date,is_all=False):
+        if is_all:
+            self.today_path = create_date_city_path(
+                "宁波房产交易网", "all", self.date_string)
+            self.get_date = get_date
+            self.is_all = is_all
+            self.pool_size = 10
+            total_page = self.getPageSize()
+
+            nones = [None for i in range(self.pool_size)]
+            total_page_list = [total_page for i in range(self.pool_size)]
+            args = zip(
+                zip(total_page_list, [i for i in range(self.pool_size)]), nones)
+
+            pool = threadpool.ThreadPool(self.pool_size)
+            my_requests = threadpool.makeRequests(
+                self.collect_ningbo_record_data, args)
+            [pool.putRequest(req) for req in my_requests]
+            pool.wait()
+            pool.dismissWorkers(self.pool_size, do_join=True)  # 完成后退出
+            print("crawl %d data" %(self.total_num) )
+        else:
+            self.today_path = create_date_path(
+                "宁波房产交易网", get_date.replace('/', '_'))
+            if get_date is None or len(get_date) < 8:
+                get_date = get_year_month_string_separator()
+            self.get_date = get_date
+            self.is_all = is_all
+            self.pool_size = 1
+            t1 = time.time()
+            total_page = self.getPageSize()
+            self.collect_ningbo_record_data(total_page)
+
+            # 计时结束，统计结果
+            t2 = time.time()
+            print("Total cost {0} second to crawl {1} data items.".format(
+                t2 - t1, self.total_num))
