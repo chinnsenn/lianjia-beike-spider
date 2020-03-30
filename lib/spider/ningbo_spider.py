@@ -124,9 +124,9 @@ class NingboSpider(base_spider.BaseSpider):
         return ningbo_list
     def start(self,is_all = False, get_date = get_year_month_string_bias()):
         if is_all:
-            self.today_path = create_date_city_path("宁波房产交易网", "all", self.date_string)
+            self.today_path = create_date_city_path("宁波房产交易网_二手房", "all", self.date_string)
         else:
-            self.today_path = create_date_path("宁波房产交易网", get_date.replace('/','_'))
+            self.today_path = create_date_path("宁波房产交易网_二手房", get_date.replace('/','_'))
         self.get_date = get_date
         self.is_all = is_all
         t1 = time.time()

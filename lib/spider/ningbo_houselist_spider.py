@@ -129,7 +129,6 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                     try:
                         #date, price, price_per, average, community, district, guid, agency_name, residence_type, floor, mortage_state
                         date = house_element.find("div",class_="group-right").find("span",class_="group-right__date").get_text()
-                        print("date is %s" %date)
                         #第一行日期不等于获取的日期
                         if not is_all  and date != get_date:
                             continue
@@ -180,14 +179,14 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                         ningbo_list.append(ningbo_house)
                     except AttributeError:
                         continue
-        except RuntimeError or KeyboardInterrupt:
+        except BaseException:
             return ningbo_list
         return ningbo_list
 
-    def start(self,get_date,is_all=False):
+    def start(self,get_date = "",is_all=False):
         if is_all:
             self.today_path = create_date_city_path(
-                "宁波房产交易网", "all", self.date_string)
+                "宁波房产交易网_房源", "all", self.date_string)
             self.get_date = get_date
             self.is_all = is_all
             self.pool_size = 10
@@ -206,10 +205,10 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             pool.dismissWorkers(self.pool_size, do_join=True)  # 完成后退出
             print("crawl %d data" %(self.total_num) )
         else:
-            self.today_path = create_date_path(
-                "宁波房产交易网", get_date.replace('/', '_'))
             if get_date is None or len(get_date) < 8:
                 get_date = get_year_month_string_separator()
+            self.today_path = create_date_path(
+                "宁波房产交易网_房源", get_date.replace('-', '_'))
             self.get_date = get_date
             self.is_all = is_all
             self.pool_size = 1
