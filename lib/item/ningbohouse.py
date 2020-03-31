@@ -5,7 +5,7 @@
 
 
 class NingboHouse(object):
-    def __init__(self, date, price, price_per, average, community, district, guid, agency_name, residence_type, floor, mortage_state):
+    def __init__(self, date, price, price_per, average, community, district, guid, agency_name, residence_type, floor, mortage_state,exclusive_or_not,agent):
         self.date = date
         self.price = price
         self.price_per = price_per
@@ -17,6 +17,8 @@ class NingboHouse(object):
         self.residence_type = residence_type
         self.floor = floor
         self.mortage_state = mortage_state
+        self.exclusive_or_not = exclusive_or_not
+        self.agent = agent
 
     def text(self):
         return self.date + "," + \
@@ -29,4 +31,6 @@ class NingboHouse(object):
             self.agency_name + "," + \
             self.residence_type + "," + \
             self.floor + "," + \
-            self.mortage_state
+            self.mortage_state + "," + \
+            self.exclusive_or_not+ "," + \
+            self.agent 

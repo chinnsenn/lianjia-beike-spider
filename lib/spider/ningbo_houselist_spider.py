@@ -41,7 +41,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             ningbos = self.get_ningbo_record_info(self.get_date,self.is_all,self.pool_size,total_page, threadNo)
             if not os.path.exists(csv_file) or os.path.getsize(csv_file) <= 0:
                 ningbos.insert(0, NingboHouse(
-                    "时间", "价格", "单价", "面积", "小区", "区域", "核验编码", "房产公司", "住宅", "楼层", "抵押"))
+                    "时间", "价格", "单价", "面积", "小区", "区域", "核验编码", "房产公司", "住宅", "楼层", "抵押","独家与否","经纪人"))
             if self.mutex.acquire(1):
                 self.total_num += len(ningbos)
                 self.mutex.release()
@@ -175,7 +175,20 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                             mortage_state = mortage_state.get_text().strip()
                         else:
                             mortage_state = "无"
-                        ningbo_house = NingboHouse(date, price, price_per, area, community, district, guid, agency_name, residence_type, floor, mortage_state)
+                        exclusive_or_not = house_element.find("span",class_="project-details__company__du")
+                        if exclusive_or_not is not None:
+                            exclusive_or_not = exclusive_or_not.get_text().strip()
+                        else:
+                            exclusive_or_not = "无"
+                        agent = house_element.find("span",class_="project-details__company__right")
+                        if agent is not None:
+                            agent = agent.get_text().strip()
+                        else:
+                            agent = "无"
+
+
+
+                        ningbo_house = NingboHouse(date, price, price_per, area, community, district, guid, agency_name, residence_type, floor, mortage_state,exclusive_or_not,agent)
                         ningbo_list.append(ningbo_house)
                     except AttributeError:
                         continue
