@@ -209,8 +209,8 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             self.get_date = get_date
             self.is_all = is_all
             self.pool_size = 10
-            # total_page = self.getPageSize()
-            total_page = 100
+            total_page = self.getPageSize()
+            # total_page = 100
 
             nones = [None for i in range(self.pool_size)]
             total_page_list = [total_page for i in range(self.pool_size)]
