@@ -20,6 +20,7 @@ import datetime
 import urllib3
 import os
 import requests
+import logging
 
 # w：以写方式打开， 
 # a：以追加模式打开 (从 EOF 开始, 必要时创建新文件) 
@@ -37,7 +38,7 @@ import requests
 class NingboHouseListSpider(base_spider.BaseSpider):
     def collect_ningbo_record_data(self, total_page, threadNo=-1, fmt="csv"):
         csv_file = self.today_path + "/{0}_house_list.csv".format("ningbo")
-        open_mode = "w"
+        open_mode = "a"
         with open(csv_file, open_mode, newline='', encoding='utf-8-sig') as f:
             ningbos = self.get_ningbo_record_info(self.get_date,self.is_all,self.pool_size,total_page, threadNo)
             if not os.path.exists(csv_file) or os.path.getsize(csv_file) <= 0:
@@ -49,11 +50,13 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             if fmt == "csv":
                 for ningbo in ningbos:
                     f.write(ningbo.text() + "\n")
-            print("Finish crawl ,save data to : " + csv_file)
+            if self.is_all:
+                print("\n线程 {0} 已完成爬取,写入文件:".format(threadNo) + csv_file)
+            else:
+                print("已完成爬取,写入文件: " + csv_file)
 
     def getPageSize(self):
         page = 'https://esf.cnnbfdc.com/home/houselist'
-        print(page)
         headers = create_headers()
         urllib3.disable_warnings()
         response = requests.get(page, timeout=10000,
@@ -87,7 +90,6 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         else:#爬取某日数据
             page_start = 1
             page_end = int(total_page) + 1
-
         ningbo_list = list()
 
         s = requests.session()
@@ -99,7 +101,10 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                 page = 'https://esf.cnnbfdc.com/home/houselist?page={0}'.format(
                     page_num)
 
-                print(page)
+                if(is_all):
+                    print("\r 线程:{0} 进度:{1}/{2}".format(threadNo,page_num - page_start + 1,page_end - page_start),end='')
+                else:
+                    print(page)
                 base_spider.BaseSpider.random_delay()
                 s.headers = create_headers()
                 urllib3.disable_warnings()
@@ -189,9 +194,11 @@ class NingboHouseListSpider(base_spider.BaseSpider):
 
                         ningbo_house = NingboHouse(date, price, price_per, area, community, district, guid, agency_name, residence_type, floor, mortage_state,exclusive_or_not,agent)
                         ningbo_list.append(ningbo_house)
-                    except AttributeError:
+                    except BaseException as e:
+                        print(e)
                         continue
-        except BaseException:
+        except BaseException as e:
+            print(e)
             return ningbo_list
         return ningbo_list
 
@@ -202,7 +209,8 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             self.get_date = get_date
             self.is_all = is_all
             self.pool_size = 10
-            total_page = self.getPageSize()
+            # total_page = self.getPageSize()
+            total_page = 100
 
             nones = [None for i in range(self.pool_size)]
             total_page_list = [total_page for i in range(self.pool_size)]
