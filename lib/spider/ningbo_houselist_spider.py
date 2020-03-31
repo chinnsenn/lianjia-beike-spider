@@ -14,6 +14,7 @@ from lib.zone.area import *
 from lib.utility.log import *
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
+from tool.definetools import *
 import lib.utility.version
 import datetime
 import urllib3
@@ -152,7 +153,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                             district ="无"
                         guid = house_element.find("div",class_="project-details__address")
                         if guid is not None:
-                            guid = guid.find("a").get_text()
+                            guid = "".join(filter(saveNum,guid.find("a").get_text()))
                         else:
                             guid = "无"
                         agency_name = house_element.find("div",class_="project-details__company").find("a")
@@ -185,8 +186,6 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                             agent = agent.get_text().strip()
                         else:
                             agent = "无"
-
-
 
                         ningbo_house = NingboHouse(date, price, price_per, area, community, district, guid, agency_name, residence_type, floor, mortage_state,exclusive_or_not,agent)
                         ningbo_list.append(ningbo_house)
