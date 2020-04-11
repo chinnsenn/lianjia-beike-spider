@@ -22,6 +22,8 @@ if __name__ == "__main__":
             date = None
             if date_str is None:
                 print("请输入有效日期")
+            elif "/" not in date_str:
+                print("日期格式错误")
             else:
                 spider = NingboSpider(base_spider.NINGBO_SPIDER)
                 if date_str is None:

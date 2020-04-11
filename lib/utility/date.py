@@ -4,10 +4,9 @@
 # 此代码仅供学习与交流，请勿用于商业用途。
 # 日期和时间的字符串辅助函数
 
-import datetime
 import time
-
-
+from datetime import datetime
+import datetime as date_time
 def get_time_string():
     """
     获得形如20161010120000这样的年月日时分秒字符串
@@ -35,17 +34,19 @@ def get_year_month_string():
     return datetime.strftime("%Y%m", current)
 
 def get_year_month_string_bias():
-    today=datetime.date.today()
-    oneday=datetime.timedelta(days=1) 
-    yesterday=today-oneday
+    today_o=date_time.date.today()
+    oneday=date_time.timedelta(days=1) 
+    yesterday=today_o-oneday
     return yesterday.strftime("%Y/%m/%d")
 
 def get_year_month_string_separator():
-    today=datetime.date.today()
-    oneday=datetime.timedelta(days=1) 
-    yesterday=today-oneday
+    today_o=date_time.date.today()
+    oneday=date_time.timedelta(days=1) 
+    yesterday=today_o-oneday
     return yesterday.strftime("%Y-%m-%d")
 
+def get_date_by_string(stringdate):
+    return datetime.strptime(stringdate,"%Y/%m/%d")
 
 if __name__ == "__main__":
     print(get_date_string())
