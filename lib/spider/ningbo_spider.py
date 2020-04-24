@@ -7,7 +7,6 @@ from bs4 import BeautifulSoup
 from lib.item.ningbo import *
 from lib.zone.city import get_city
 from lib.zone.decorate import get_decorate_list
-from lib.spider import *
 from lib.utility.date import *
 from lib.utility.path import *
 from lib.zone.area import *
@@ -15,7 +14,7 @@ from lib.utility.log import *
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 import lib.utility.version
-import datetime
+from datetime import datetime
 import urllib3
 
 # w：以写方式打开， 
@@ -68,11 +67,11 @@ class NingboSpider(base_spider.BaseSpider):
         #     print("total = " + total_page)
         # except Exception as e:
         #     print(e)
+        headers = create_headers()
         try:
             for page_num in range(1, int(total_page) + 1):
                 page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(page_num)
                 print(page)
-                headers = create_headers()
                 base_spider.BaseSpider.random_delay()
                 response = requests.get(page, timeout=10000, headers=headers,verify=False)
                 html = response.content
@@ -95,7 +94,7 @@ class NingboSpider(base_spider.BaseSpider):
                 #第一行日期不等于获取的日期
                 if is_all!=True and first_date_data != get_date:
                     #第一日期小于获取的日期，退出
-                    if first_date_data < get_date:   
+                    if get_date_by_string(first_date_data) < get_date_by_string(get_date) :   
                         return ningbo_list
                     if first_date_data == last_date_data:
                         continue
@@ -116,7 +115,7 @@ class NingboSpider(base_spider.BaseSpider):
                                 trs.append(td.getText().replace(' ','').replace("\n", "").replace("\r", "").strip())
                             else:
                                 trs.append(td.find('a').getText().replace(' ','').replace("\n", "").replace("\r", "").strip())
-                        ningbo = Ningbo(*trs)
+                        ningbo = Ningbo(trs[0],trs[1],trs[2],trs[3],trs[4])
                         print(ningbo.text() + '\n')
                         ningbo_list.append(ningbo)
         except KeyboardInterrupt:
