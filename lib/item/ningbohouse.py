@@ -21,16 +21,16 @@ class NingboHouse(object):
         self.agent = agent
 
     def text(self):
-        return self.date + "," + \
-            self.price + "," + \
-            self.price_per + "," + \
-            self.average + "," + \
-            self.community + "," + \
-            self.district + "," + \
-            self.guid + "," + \
-            self.agency_name + "," + \
-            self.residence_type + "," + \
-            self.floor + "," + \
-            self.mortage_state + "," + \
-            self.exclusive_or_not+ "," + \
+        return self.date + "\t" + \
+            self.price + "\t" + \
+            self.price_per + "\t" + \
+            self.average + "\t" + \
+            self.community + "\t" + \
+            self.district + "\t" + \
+            self.guid + "\t" + \
+            self.agency_name + "\t" + \
+            self.residence_type + "\t" + \
+            self.floor + "\t" + \
+            self.mortage_state + "\t" + \
+            self.exclusive_or_not+ "\t" + \
             self.agent 
