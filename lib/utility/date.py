@@ -58,5 +58,15 @@ def is_same_day(date_one,date_two):
     daytwo = datetime.strptime(date_two,"%Y-%m-%d")
     return dayone - daytwo == timedelta(days=0)
 
+def compare_two_day_slash(date_one,date_two):
+    dayone = datetime.strptime(date_one,"%Y/%m/%d")
+    daytwo = datetime.strptime(date_two,"%Y/%m/%d")
+    return dayone - daytwo > timedelta(days=0)
+
+def is_same_day_slash(date_one,date_two):
+    dayone = datetime.strptime(date_one,"%Y/%m/%d")
+    daytwo = datetime.strptime(date_two,"%Y/%m/%d")
+    return dayone - daytwo == timedelta(days=0)
+
 if __name__ == "__main__":
     print(get_date_string())

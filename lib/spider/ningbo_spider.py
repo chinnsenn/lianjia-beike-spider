@@ -42,38 +42,104 @@ class NingboSpider(base_spider.BaseSpider):
                 for ningbo in ningbos:
                     f.write(ningbo.text() + "\n")
             print("Finish crawl ,save data to : " + csv_file)
+    @staticmethod
+    def get_page_number_by_date(total_page, get_date):
+        first = 1
+        last = int(total_page)
+        s = requests.session()
+        s.verify = False
+        urllib3.disable_warnings()
+        while first < last:
+            mid = int(first + (last - first) / 2)
+            page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(mid)
+            print("\r 正在搜索 {0} 出现的第一页，锁定在 {1} ~ {2} 之间 ...".format(
+            get_date, first, last), end='')
+            base_spider.BaseSpider.random_delay()
+            s.headers = create_headers()
+            response = s.get(page)
+            html = response.content
+            soup = BeautifulSoup(html, "lxml")
+            data_table = soup.find('table',class_='layui-table')
+            house_elements = data_table.findAll('tr')
+            #====================第一行=========================
+            first_house_element = house_elements[1]
+            first_tds = first_house_element.findAll("td")
+            #获取第一行数据日期
+            first_date_data = first_tds[0].getText()
+            
+            #====================最后一行=========================
+            last_house_element = house_elements[-1]
+            last_tds = last_house_element.findAll("td")
+            #获取第一行数据日期
+            last_date_data = last_tds[0].getText()
 
+            if is_same_day_slash(first_date_data, last_date_data):  # 中间页头尾日期相同
+                if is_same_day_slash(first_date_data, get_date):  # 第一行等于要获取的日期
+                    last = mid
+                elif compare_two_day_slash(first_date_data, get_date):  # 第一大于要获取的日期
+                    first = mid + 1
+                else:
+                    last = mid
+            else:  # 第一行大于最后一行
+                if is_same_day_slash(last_date_data, get_date):  # 最后一行等于获取日期
+                    first = mid  # 返回页数
+                    break
+                if is_same_day_slash(first_date_data, get_date):  # 最后一行等于获取日期
+                    first = mid - 1  # 返回页数
+                elif compare_two_day_slash(get_date, last_date_data):  # 最后一行小于获取日期
+                    if compare_two_day_slash(first_date_data, get_date):
+                        first = 0  # 该日期数据不存在
+                        break
+                    else:
+                        last = mid
+                elif compare_two_day_slash(last_date_data, get_date):
+                    first = mid + 1
+        return first
+    
     @staticmethod
     def get_ningbo_record_info(is_all = False,get_date = get_year_month_string_bias()):
         total_page = 100
         ningbo_list = list()
         ningbo_list.append(Ningbo("合同签订日期","合同编号","所在区","街道（小区）","经纪机构备案名称"))
         page = 'https://esf.cnnbfdc.com/contract?page=1'
-        print(page)
-        headers = create_headers()
+        
+        s = requests.session()
+        s.verify = False
         urllib3.disable_warnings()
-        response = requests.get(page, timeout=10000, headers=headers,verify=False)
+
+        base_spider.BaseSpider.random_delay()
+        s.headers = create_headers()
+        response = s.get(page)
         html = response.content
         soup = BeautifulSoup(html, "lxml")
-
-        # try:
-        #     pagination = soup.find('ul', class_="pagination")
-        #     pagination_last = soup.find('ul', class_="pagination").find('li', class_="PagedList-skipToLast").find('a')
-        #     href = pagination_last.get('href')
-        #     parsed_result = urlparse(href)
-        #     querys = parse_qs(parsed_result.query)
-        #     querys = {k: v[0] for k, v in querys.items()}
-        #     total_page = querys['page']
-        #     print("total = " + total_page)
-        # except Exception as e:
-        #     print(e)
-        headers = create_headers()
+        
         try:
-            for page_num in range(1, int(total_page) + 1):
+            pagination = soup.find('ul', class_="pagination")
+            pagination_last = soup.find('ul', class_="pagination").find('li', class_="PagedList-skipToLast").find('a')
+            href = pagination_last.get('href')
+            parsed_result = urlparse(href)
+            querys = parse_qs(parsed_result.query)
+            querys = {k: v[0] for k, v in querys.items()}
+            total_page = querys['page']
+            print("total = " + total_page)
+        except Exception as e:
+            print(e)
+
+        page_start = NingboSpider.get_page_number_by_date(total_page,get_date)
+        if page_start == 0:
+            print("没有该日期数据")
+            return list()
+        else:
+            print("从第{0}页开始爬取".format(page_start))
+
+
+        try:
+            for page_num in range(page_start, int(total_page) + 1):
                 page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(page_num)
                 print(page)
                 base_spider.BaseSpider.random_delay()
-                response = requests.get(page, timeout=10000, headers=headers,verify=False)
+                s.headers = create_headers()
+                response = s.get(page)
                 html = response.content
                 soup = BeautifulSoup(html, "lxml")
                 data_table = soup.find('table',class_='layui-table')
