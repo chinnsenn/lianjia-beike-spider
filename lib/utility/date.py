@@ -5,7 +5,7 @@
 # 日期和时间的字符串辅助函数
 
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import datetime as date_time
 def get_time_string():
     """
@@ -47,6 +47,16 @@ def get_year_month_string_separator():
 
 def get_date_by_string(stringdate):
     return datetime.strptime(stringdate,"%Y/%m/%d")
+
+def compare_two_day(date_one,date_two):
+    dayone = datetime.strptime(date_one,"%Y-%m-%d")
+    daytwo = datetime.strptime(date_two,"%Y-%m-%d")
+    return dayone - daytwo > timedelta(days=0)
+
+def is_same_day(date_one,date_two):
+    dayone = datetime.strptime(date_one,"%Y-%m-%d")
+    daytwo = datetime.strptime(date_two,"%Y-%m-%d")
+    return dayone - daytwo == timedelta(days=0)
 
 if __name__ == "__main__":
     print(get_date_string())

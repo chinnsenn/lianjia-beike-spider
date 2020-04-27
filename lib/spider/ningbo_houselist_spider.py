@@ -40,10 +40,11 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         csv_file = self.today_path + "/{0}_house_list.csv".format("ningbo")
         open_mode = "a"
         with open(csv_file, open_mode, newline='', encoding='utf-8-sig') as f:
-            ningbos = self.get_ningbo_record_info(self.get_date,self.is_all,self.pool_size,total_page, threadNo)
+            ningbos = self.get_ningbo_record_info(
+                self.get_date, self.is_all, self.pool_size, total_page, threadNo)
             if not os.path.exists(csv_file) or os.path.getsize(csv_file) <= 0:
                 ningbos.insert(0, NingboHouse(
-                    "时间", "价格", "单价", "面积", "小区", "区域", "核验编码", "房产公司", "住宅", "楼层", "抵押","独家与否","经纪人"))
+                    "时间", "价格", "单价", "面积", "小区", "区域", "核验编码", "房产公司", "住宅", "楼层", "抵押", "独家与否", "经纪人"))
             if self.mutex.acquire(1):
                 self.total_num += len(ningbos)
                 self.mutex.release()
@@ -78,17 +79,78 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         return total_page
 
     @staticmethod
-    def get_ningbo_record_info(get_date=get_year_month_string_separator(), is_all=False, pool_size = 1, total_page=100, threadNo=-1):
-        if is_all: #爬取全部数据
+    def get_page_number_by_date(total_page, get_date):
+        first = 1
+        last = int(total_page)
+        s = requests.session()
+        s.verify = False
+        urllib3.disable_warnings()
+        while first < last:
+            mid = int(first + (last - first) / 2)
+            page = 'https://esf.cnnbfdc.com/home/houselist?page={0}'.format(
+                mid)
+            print("\r 正在搜索 {0} 出现的第一页，锁定在 {1} ~ {2} 之间 ...".format(
+                get_date, first, last), end='')
+            base_spider.BaseSpider.random_delay()
+            s.headers = create_headers()
+            response = s.get(page)
+            html = response.content
+            soup = BeautifulSoup(html, "lxml")
+
+            house_elements = soup.find_all("li", class_="listbody__main__row")
+            # ====================第一行=========================
+            first_house_element = house_elements[0]
+            # 获取第一行数据日期
+            first_date_data = first_house_element.find(
+                "div", class_="group-right").find("span", class_="group-right__date").get_text()
+            # ====================最后一行=========================
+            last_house_element = house_elements[-1]
+            # 获取第一行数据日期
+            last_date_data = last_house_element.find(
+                "div", class_="group-right").find("span", class_="group-right__date").get_text()
+
+            if is_same_day(first_date_data, last_date_data):  # 中间页头尾日期相同
+                if is_same_day(first_date_data, get_date):  # 第一行等于要获取的日期
+                    last = mid
+                elif compare_two_day(first_date_data, get_date):  # 第一大于要获取的日期
+                    first = mid + 1
+                else:
+                    last = mid
+            else:  # 第一行大于最后一行
+                if is_same_day(last_date_data, get_date):  # 最后一行等于获取日期
+                    first = mid  # 返回页数
+                    break
+                if is_same_day(first_date_data, get_date):  # 最后一行等于获取日期
+                    first = mid - 1  # 返回页数
+                elif compare_two_day(get_date, last_date_data):  # 最后一行小于获取日期
+                    if compare_two_day(first_date_data, get_date):
+                        first = 0  # 该日期数据不存在
+                        break
+                    else:
+                        last = mid
+                elif compare_two_day(last_date_data, get_date):
+                    first = mid + 1
+        return first
+
+    @staticmethod
+    def get_ningbo_record_info(get_date=get_year_month_string_separator(), is_all=False, pool_size=1, total_page=100, threadNo=-1):
+        if is_all:  # 爬取全部数据
             if(threadNo < pool_size - 1):
                 page_size_tread = int(int(total_page) / int(pool_size))
                 page_start = int(threadNo) * page_size_tread + 1
                 page_end = page_start + page_size_tread
             else:
-                page_start = int(int(total_page) / int(pool_size)) * threadNo + 1
+                page_start = int(int(total_page) /
+                                 int(pool_size)) * threadNo + 1
                 page_end = int(total_page) + 1
-        else:#爬取某日数据
-            page_start = 1
+        else:  # 爬取某日数据
+            page_start = NingboHouseListSpider.get_page_number_by_date(
+                total_page, get_date)
+            if page_start == 0:
+                print("没有该日期数据")
+                return list()
+            else:
+                print("从第{0}页开始爬取".format(page_start))
             page_end = int(total_page) + 1
         ningbo_list = list()
 
@@ -102,97 +164,113 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                     page_num)
 
                 if(is_all):
-                    print("\r 线程:{0} 进度:{1}/{2}".format(threadNo,page_num - page_start + 1,page_end - page_start),end='')
+                    print("\r 线程:{0} 进度:{1}/{2}".format(threadNo, page_num -
+                                                        page_start + 1, page_end - page_start), end='')
                 else:
                     print(page)
                 base_spider.BaseSpider.random_delay()
                 s.headers = create_headers()
-                urllib3.disable_warnings()
                 response = s.get(page)
                 html = response.content
                 soup = BeautifulSoup(html, "lxml")
 
                 house_elements = soup.find_all(
                     "li", class_="listbody__main__row")
-                #====================第一行=========================
+                # ====================第一行=========================
                 first_house_element = house_elements[0]
-                #获取第一行数据日期
-                first_date_data = first_house_element.find("div",class_="group-right").find("span",class_="group-right__date").get_text()
-                #====================最后一行=========================
-                last_house_element = house_elements[-1] 
-                #获取第一行数据日期
-                last_date_data = last_house_element.find("div",class_="group-right").find("span",class_="group-right__date").get_text()
-                
-                #第一行日期不等于获取的日期
+                # 获取第一行数据日期
+                first_date_data = first_house_element.find(
+                    "div", class_="group-right").find("span", class_="group-right__date").get_text()
+                # ====================最后一行=========================
+                last_house_element = house_elements[-1]
+                # 获取第一行数据日期
+                last_date_data = last_house_element.find(
+                    "div", class_="group-right").find("span", class_="group-right__date").get_text()
+
+                # 第一行日期不等于获取的日期
                 if not is_all and first_date_data != get_date:
-                    #第一日期小于获取的日期，退出
-                    if first_date_data < get_date:   
+                    # 第一日期小于获取的日期，退出
+                    if first_date_data < get_date:
                         return ningbo_list
                     if first_date_data == last_date_data:
                         continue
-                
+
                 for house_element in house_elements:
                     try:
                         #date, price, price_per, average, community, district, guid, agency_name, residence_type, floor, mortage_state
-                        date = house_element.find("div",class_="group-right").find("span",class_="group-right__date").get_text()
-                        #第一行日期不等于获取的日期
-                        if not is_all  and date != get_date:
+                        date = house_element.find(
+                            "div", class_="group-right").find("span", class_="group-right__date").get_text()
+                        # 第一行日期不等于获取的日期
+                        if not is_all and date != get_date:
                             continue
-                        price = house_element.find("div",class_="group-right").find("span",class_="group-right__price").find("b").get_text().strip()
-                        averages = house_element.findAll("span",class_="group-right__average__price")
+                        price = house_element.find("div", class_="group-right").find(
+                            "span", class_="group-right__price").find("b").get_text().strip()
+                        averages = house_element.findAll(
+                            "span", class_="group-right__average__price")
                         if averages is not None:
                             price_per = averages[0].find("em").get_text()
                             area = averages[1].find("em").get_text()
                         else:
                             price_per = "无"
                             area = "无"
-                        community = house_element.find("div",class_="project-title").find("a")
+                        community = house_element.find(
+                            "div", class_="project-title").find("a")
                         if community is not None:
                             community = community.get_text()
                         else:
                             community = "无"
-                        district = house_element.find("small",class_="color--grey")
+                        district = house_element.find(
+                            "small", class_="color--grey")
                         if district is not None:
-                            district = district.get_text().replace("/","无").strip()
+                            district = district.get_text().replace("/", "无").strip()
                         else:
-                            district ="无"
-                        guid = house_element.find("div",class_="project-details__address")
+                            district = "无"
+                        guid = house_element.find(
+                            "div", class_="project-details__address")
                         if guid is not None:
-                            guid = "".join(filter(saveNum,guid.find("a").get_text()))
+                            guid = "".join(
+                                filter(saveNum, guid.find("a").get_text()))
                         else:
                             guid = "无"
-                        agency_name = house_element.find("div",class_="project-details__company").find("a")
+                        agency_name = house_element.find(
+                            "div", class_="project-details__company").find("a")
                         if agency_name is not None:
                             agency_name = agency_name.get_text().strip()
                         else:
                             agency_name = "无"
-                        residence_type = house_element.find("span",class_="project-decorations__sign ys")
+                        residence_type = house_element.find(
+                            "span", class_="project-decorations__sign ys")
                         if residence_type is not None:
                             residence_type = residence_type.get_text().strip()
                         else:
                             residence_type = "无"
-                        floor = house_element.find("span",class_="project-decorations__sign bpf")
+                        floor = house_element.find(
+                            "span", class_="project-decorations__sign bpf")
                         if floor is not None:
                             floor = floor.get_text().strip()
                         else:
-                            floor ="无"
-                        mortage_state = house_element.find("span",class_="mortgage-state project-decorations__sign bpf")
+                            floor = "无"
+                        mortage_state = house_element.find(
+                            "span", class_="mortgage-state project-decorations__sign bpf")
                         if mortage_state is not None:
                             mortage_state = mortage_state.get_text().strip()
                         else:
                             mortage_state = "无"
-                        exclusive_or_not = house_element.find("span",class_="project-details__company__du")
+                        exclusive_or_not = house_element.find(
+                            "span", class_="project-details__company__du")
                         if exclusive_or_not is not None:
                             exclusive_or_not = exclusive_or_not.get_text().strip()
                         else:
                             exclusive_or_not = "无"
-                        agent = house_element.find("span",class_="project-details__company__right")
+                        agent = house_element.find(
+                            "span", class_="project-details__company__right")
                         if agent is not None:
                             agent = agent.get_text().strip()
                         else:
                             agent = "无"
 
-                        ningbo_house = NingboHouse(date, price, price_per, area, community, district, guid, agency_name, residence_type, floor, mortage_state,exclusive_or_not,agent)
+                        ningbo_house = NingboHouse(date, price, price_per, area, community, district, guid,
+                                                   agency_name, residence_type, floor, mortage_state, exclusive_or_not, agent)
                         ningbo_list.append(ningbo_house)
                     except BaseException as e:
                         print(e)
@@ -202,7 +280,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             return ningbo_list
         return ningbo_list
 
-    def start(self,get_date = "",is_all=False):
+    def start(self, get_date="", is_all=False):
         if is_all:
             self.today_path = create_date_city_path(
                 "宁波房产交易网_房源", "all", self.date_string)
@@ -223,7 +301,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             [pool.putRequest(req) for req in my_requests]
             pool.wait()
             pool.dismissWorkers(self.pool_size, do_join=True)  # 完成后退出
-            print("crawl %d data" %(self.total_num) )
+            print("crawl %d data" % (self.total_num))
         else:
             if get_date is None or len(get_date) < 8:
                 get_date = get_year_month_string_separator()
