@@ -6,31 +6,31 @@
 
 class NingboHouse(object):
     def __init__(self, date, price, price_per, average, community, district, guid, agency_name, residence_type, floor, mortage_state,exclusive_or_not,agent):
-        self.date = date
-        self.price = price
-        self.price_per = price_per
-        self.average = average
-        self.community = community
-        self.district = district
-        self.guid = guid
-        self.agency_name = agency_name
-        self.residence_type = residence_type
-        self.floor = floor
-        self.mortage_state = mortage_state
-        self.exclusive_or_not = exclusive_or_not
-        self.agent = agent
+        self.date = date.replace(',','/')
+        self.price = price.replace(',','/')
+        self.price_per = price_per.replace(',','/')
+        self.average = average.replace(',','/')
+        self.community = community.replace(',','/')
+        self.district = district.replace(',','/')
+        self.guid = guid.replace(',','/')
+        self.agency_name = agency_name.replace(',','/')
+        self.residence_type = residence_type.replace(',','/')
+        self.floor = floor.replace(',','/')
+        self.mortage_state = mortage_state.replace(',','/')
+        self.exclusive_or_not = exclusive_or_not.replace(',','/')
+        self.agent = agent.replace(',','/')
 
     def text(self):
-        return self.date + "\t" + \
-            self.price + "\t" + \
-            self.price_per + "\t" + \
-            self.average + "\t" + \
-            self.community + "\t" + \
-            self.district + "\t" + \
-            self.guid + "\t" + \
-            self.agency_name + "\t" + \
-            self.residence_type + "\t" + \
-            self.floor + "\t" + \
-            self.mortage_state + "\t" + \
-            self.exclusive_or_not+ "\t" + \
+        return self.date + "," + \
+            self.price + "," + \
+            self.price_per + "," + \
+            self.average + "," + \
+            self.community + "," + \
+            self.district + "," + \
+            self.guid + "," + \
+            self.agency_name + "," + \
+            self.residence_type + "," + \
+            self.floor + "," + \
+            self.mortage_state + "," + \
+            self.exclusive_or_not+ "," + \
             self.agent 
