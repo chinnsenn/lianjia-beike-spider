@@ -9,12 +9,12 @@ def filereadcsv(originFile_path, toFile_path,duplicate_key):
     if  os.path.exists(toFile_path):
         os.remove(toFile_path)
     df = pd.read_csv(originFile_path,delimiter=',')
-    df.drop_duplicates('核验编码').to_csv(toFile_path)
+    df.drop_duplicates('核验编码').to_csv(toFile_path,index=False)
     print("去重成功:" + toFile_path)
 
 if __name__ == "__main__":
     prompt_start = "请拖入需要去重的 csv 文件:\n"
-    csv_file = input(prompt_start)
+    csv_file = input(prompt_start).replace(' ','')
     if not os.path.exists(csv_file):
         print("请拖入有效文件")
     else:
