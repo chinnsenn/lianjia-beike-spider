@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # coding=utf-8
-
 import re
 import threadpool
 from bs4 import BeautifulSoup
@@ -36,12 +35,12 @@ import logging
 
 
 class NingboHouseListSpider(base_spider.BaseSpider):
-    def collect_ningbo_record_data(self, total_page, threadNo=-1, fmt="csv"):
+    def collect_ningbo_record_data(self, total_page, threadNo=-1, fmt="csv",proxies = list()):
         csv_file = self.today_path + "/{0}_house_list.csv".format("ningbo")
         open_mode = "a"
         with open(csv_file, open_mode, newline='', encoding='utf-8-sig') as f:
             ningbos = self.get_ningbo_record_info(
-                self.get_date, self.is_all, self.pool_size, total_page, threadNo)
+                self.get_date, self.is_all, self.pool_size, total_page, threadNo,proxies)
             if not os.path.exists(csv_file) or os.path.getsize(csv_file) <= 0:
                 ningbos.insert(0, NingboHouse(
                     "时间", "价格", "单价", "面积", "小区", "区域", "核验编码", "房产公司", "住宅", "楼层", "抵押", "独家与否", "经纪人"))
@@ -79,13 +78,15 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         return total_page
 
     @staticmethod
-    def get_page_number_by_date(total_page, get_date):
+    def get_page_number_by_date(total_page, get_date,proxies = list()):
         first = 1
         last = int(total_page)
         s = requests.session()
         s.verify = False
         urllib3.disable_warnings()
         while first < last:
+            if len(proxies) > 0:
+                s.proxies = random.choice(proxies)
             mid = int(first + (last - first) / 2)
             page = 'https://esf.cnnbfdc.com/home/houselist?page={0}'.format(
                 mid)
@@ -133,7 +134,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         return first
 
     @staticmethod
-    def get_ningbo_record_info(get_date=get_year_month_string_separator(), is_all=False, pool_size=1, total_page=100, threadNo=-1):
+    def get_ningbo_record_info(get_date=get_year_month_string_separator(), is_all=False, pool_size=1, total_page=100, threadNo=-1,proxies = list()):
         if is_all:  # 爬取全部数据
             if(threadNo < pool_size - 1):
                 page_size_tread = int(int(total_page) / int(pool_size))
@@ -145,7 +146,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                 page_end = int(total_page) + 1
         else:  # 爬取某日数据
             page_start = NingboHouseListSpider.get_page_number_by_date(
-                total_page, get_date)
+                total_page, get_date,proxies)
             if page_start == 0:
                 print("没有该日期数据")
                 return list()
@@ -160,12 +161,14 @@ class NingboHouseListSpider(base_spider.BaseSpider):
 
         try:
             for page_num in range(page_start, page_end):
+                if len(proxies) > 0:
+                    s.proxies = random.choice(proxies)
                 page = 'https://esf.cnnbfdc.com/home/houselist?page={0}'.format(
                     page_num)
 
                 if(is_all):
-                    print("\r 线程:{0} 进度:{1}/{2}".format(threadNo, page_num -
-                                                        page_start + 1, page_end - page_start), end='')
+                    print("\r 线程:{0} 进度:{1}/{2},代理 IP:{3}".format(threadNo, page_num -
+                                                        page_start + 1, page_end - page_start,s.proxies), end='')
                 else:
                     print(page)
                 base_spider.BaseSpider.random_delay()
@@ -273,7 +276,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                                                    agency_name, residence_type, floor, mortage_state, exclusive_or_not, agent)
                         ningbo_list.append(ningbo_house)
                     except BaseException as e:
-                        print(e)
+                        print("\n" + e)
                         continue
         except BaseException as e:
             print(e)
@@ -281,6 +284,8 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         return ningbo_list
 
     def start(self, get_date="", is_all=False):
+        proxies = list()
+        proxies = self.get_ip()
         if is_all:
             self.today_path = create_date_city_path(
                 "宁波房产交易网_房源", "all", self.date_string)
@@ -289,15 +294,13 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             self.pool_size = 10
             total_page = self.getPageSize()
             # total_page = 100
-
-            nones = [None for i in range(self.pool_size)]
-            total_page_list = [total_page for i in range(self.pool_size)]
-            args = zip(
-                zip(total_page_list, [i for i in range(self.pool_size)]), nones)
+            args = list()
+            for i in range(self.pool_size):
+                a = {'total_page':total_page,'threadNo':i,'fmt':'csv','proxies':proxies}
+                args.append((None,a))
 
             pool = threadpool.ThreadPool(self.pool_size)
-            my_requests = threadpool.makeRequests(
-                self.collect_ningbo_record_data, args)
+            my_requests = threadpool.makeRequests(self.collect_ningbo_record_data, args)
             [pool.putRequest(req) for req in my_requests]
             pool.wait()
             pool.dismissWorkers(self.pool_size, do_join=True)  # 完成后退出
@@ -312,7 +315,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
             self.pool_size = 1
             t1 = time.time()
             total_page = self.getPageSize()
-            self.collect_ningbo_record_data(total_page)
+            self.collect_ningbo_record_data(total_page,proxies=proxies)
 
             # 计时结束，统计结果
             t2 = time.time()

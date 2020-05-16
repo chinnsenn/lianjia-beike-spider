@@ -30,11 +30,11 @@ import urllib3
 # ab+：以二进制读写模式打开 (参见 a+ )
 
 class NingboSpider(base_spider.BaseSpider):
-    def collect_ningbo_record_data(self, fmt="csv"):
+    def collect_ningbo_record_data(self, proxies, fmt="csv"):
         csv_file = self.today_path + "/{0}.csv".format("ningbo")
         open_mode = "w"
         with open(csv_file, open_mode, newline='', encoding='utf-8-sig') as f:
-            ningbos = self.get_ningbo_record_info(self.is_all,self.get_date)
+            ningbos = self.get_ningbo_record_info(self.is_all,self.get_date,proxies)
             if self.mutex.acquire(1):
                 self.total_num += len(ningbos)
                 self.mutex.release()
@@ -43,13 +43,15 @@ class NingboSpider(base_spider.BaseSpider):
                     f.write(ningbo.text() + "\n")
             print("Finish crawl ,save data to : " + csv_file)
     @staticmethod
-    def get_page_number_by_date(total_page, get_date):
+    def get_page_number_by_date(total_page, get_date,proxies = list()):
         first = 1
         last = int(total_page)
         s = requests.session()
         s.verify = False
         urllib3.disable_warnings()
         while first < last:
+            if len(proxies) > 0:
+                s.proxies = random.choice(proxies)
             mid = int(first + (last - first) / 2)
             page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(mid)
             print("\r 正在搜索 {0} 出现的第一页，锁定在 {1} ~ {2} 之间 ...".format(
@@ -97,7 +99,7 @@ class NingboSpider(base_spider.BaseSpider):
         return first
     
     @staticmethod
-    def get_ningbo_record_info(is_all = False,get_date = get_year_month_string_bias()):
+    def get_ningbo_record_info(is_all = False,get_date = get_year_month_string_bias(),proxies = list()):
         total_page = 100
         ningbo_list = list()
         ningbo_list.append(Ningbo("合同签订日期","合同编号","所在区","街道（小区）","经纪机构备案名称"))
@@ -125,7 +127,7 @@ class NingboSpider(base_spider.BaseSpider):
         except Exception as e:
             print(e)
 
-        page_start = NingboSpider.get_page_number_by_date(total_page,get_date)
+        page_start = NingboSpider.get_page_number_by_date(total_page,get_date,proxies)
         if page_start == 0:
             print("没有该日期数据")
             return list()
@@ -138,6 +140,9 @@ class NingboSpider(base_spider.BaseSpider):
                 page = 'https://esf.cnnbfdc.com/contract?page={0}'.format(page_num)
                 print(page)
                 base_spider.BaseSpider.random_delay()
+                
+                if len(proxies) > 0:
+                    s.proxies = random.choice(proxies)
                 s.headers = create_headers()
                 response = s.get(page)
                 html = response.content
@@ -188,6 +193,8 @@ class NingboSpider(base_spider.BaseSpider):
             return ningbo_list
         return ningbo_list
     def start(self,is_all = False, get_date = get_year_month_string_bias()):
+        proxies = list()
+        proxies = self.get_ip()
         if is_all:
             self.today_path = create_date_city_path("宁波房产交易网_二手房", "all", self.date_string)
         else:
