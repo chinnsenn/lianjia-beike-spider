@@ -77,7 +77,7 @@ class BaseSpider(object):
         """
         return self.cities.get(en, None)
     
-    def get_ip(self,num =1):
+    def get_ip(self,pool_size = 10,num =1):
         proxies = list()
         print('正在获取代理 ip ')
         url = 'http://www.xicidaili.com/nn/' + str(num)
@@ -96,7 +96,7 @@ class BaseSpider(object):
         html = etree.HTML(response)  # 转化这个位置 不用解码
         ip_lists = html.xpath('//div//tr')  # 节点
         for tem in ip_lists:
-            if len(proxies) > 9:
+            if len(proxies) == pool_size:
                 return proxies
             ip = tem.xpath('./td[2]/text()')
             print("\r 已获取 {0} 个代理ip ...".format(len(proxies)), end='')
