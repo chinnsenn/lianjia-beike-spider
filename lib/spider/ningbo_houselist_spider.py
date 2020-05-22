@@ -291,7 +291,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
                 "宁波房产交易网_房源", "all", self.date_string)
             self.get_date = get_date
             self.is_all = is_all
-            self.pool_size = 10
+            self.pool_size = 2
             total_page = self.getPageSize()
             # total_page = 100
             args = list()
