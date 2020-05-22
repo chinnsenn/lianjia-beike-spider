@@ -194,7 +194,7 @@ class NingboSpider(base_spider.BaseSpider):
         return ningbo_list
     def start(self,is_all = False, get_date = get_year_month_string_bias()):
         proxies = list()
-        proxies = self.get_ip()
+        proxies = self.get_ip(pool_size = 3)
         if is_all:
             self.today_path = create_date_city_path("宁波房产交易网_二手房", "all", self.date_string)
         else:
@@ -202,7 +202,7 @@ class NingboSpider(base_spider.BaseSpider):
         self.get_date = get_date
         self.is_all = is_all
         t1 = time.time()
-        self.collect_ningbo_record_data()
+        self.collect_ningbo_record_data(proxies)
         # 计时结束，统计结果
         t2 = time.time()
         print("Total cost {0} second to crawl {1} data items.".format(t2 - t1, self.total_num))
