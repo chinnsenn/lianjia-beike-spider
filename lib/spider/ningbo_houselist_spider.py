@@ -84,6 +84,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         s = requests.session()
         s.verify = False
         urllib3.disable_warnings()
+        s.proxies = {'https': "https://127.0.0.1:1080"} 
         while first < last:
             if len(proxies) > 0:
                 s.proxies = random.choice(proxies)
@@ -158,6 +159,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         s = requests.session()
         s.verify = False
         urllib3.disable_warnings()
+        s.proxies = {'https': "https://127.0.0.1:1080"} 
 
         try:
             for page_num in range(page_start, page_end):
