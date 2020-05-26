@@ -285,7 +285,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
 
     def start(self, get_date="", is_all=False):
         proxies = list()
-        proxies = self.get_ip()
+        # proxies = self.get_ip()
         if is_all:
             self.today_path = create_date_city_path(
                 "宁波房产交易网_房源", "all", self.date_string)
