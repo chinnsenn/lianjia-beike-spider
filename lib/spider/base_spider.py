@@ -32,7 +32,7 @@ class BaseSpider(object):
     @staticmethod
     def random_delay():
         if RANDOM_DELAY:
-            time.sleep(random.randint(10, 50))
+            time.sleep(random.randint(0, 16))
     def __init__(self, name):
         global SPIDER_NAME
         SPIDER_NAME = name

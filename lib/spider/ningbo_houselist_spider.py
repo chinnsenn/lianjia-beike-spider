@@ -57,10 +57,12 @@ class NingboHouseListSpider(base_spider.BaseSpider):
 
     def getPageSize(self):
         page = 'https://esf.cnnbfdc.com/home/houselist'
-        headers = create_headers()
+        s = requests.session()
+        s.verify = False
         urllib3.disable_warnings()
-        response = requests.get(page, timeout=10000,
-                                headers=headers, verify=False)
+        s.proxies = {'https': "http://127.0.0.1:1080"} 
+        s.headers = create_headers()
+        response = s.get(page)
         html = response.content
         soup = BeautifulSoup(html, "lxml")
 
@@ -84,7 +86,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         s = requests.session()
         s.verify = False
         urllib3.disable_warnings()
-        s.proxies = {'https': "https://127.0.0.1:1080"} 
+        s.proxies = {'https': "http://127.0.0.1:1080"} 
         while first < last:
             if len(proxies) > 0:
                 s.proxies = random.choice(proxies)
@@ -159,7 +161,7 @@ class NingboHouseListSpider(base_spider.BaseSpider):
         s = requests.session()
         s.verify = False
         urllib3.disable_warnings()
-        s.proxies = {'https': "https://127.0.0.1:1080"} 
+        s.proxies = {'https': "http://127.0.0.1:1080"} 
 
         try:
             for page_num in range(page_start, page_end):

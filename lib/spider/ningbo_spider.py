@@ -49,6 +49,7 @@ class NingboSpider(base_spider.BaseSpider):
         s = requests.session()
         s.verify = False
         urllib3.disable_warnings()
+        s.proxies = {'https': "http://127.0.0.1:1080"} 
         while first < last:
             if len(proxies) > 0:
                 s.proxies = random.choice(proxies)
@@ -108,6 +109,7 @@ class NingboSpider(base_spider.BaseSpider):
         s = requests.session()
         s.verify = False
         urllib3.disable_warnings()
+        s.proxies = {'https': "http://127.0.0.1:1080"} 
 
         base_spider.BaseSpider.random_delay()
         s.headers = create_headers()
@@ -126,14 +128,15 @@ class NingboSpider(base_spider.BaseSpider):
             print("total = " + total_page)
         except Exception as e:
             print(e)
-
-        page_start = NingboSpider.get_page_number_by_date(total_page,get_date,proxies)
-        if page_start == 0:
-            print("没有该日期数据")
-            return list()
+        if not is_all:
+            page_start = NingboSpider.get_page_number_by_date(total_page,get_date,proxies)
+            if page_start == 0:
+                print("没有该日期数据")
+                return list()
+            else:
+                print("从第{0}页开始爬取".format(page_start))
         else:
-            print("从第{0}页开始爬取".format(page_start))
-
+            page_start = 1
 
         try:
             for page_num in range(page_start, int(total_page) + 1):
