@@ -99,7 +99,6 @@ class BaseSpider(object):
             if len(proxies) == pool_size:
                 return proxies
             ip = tem.xpath('./td[2]/text()')
-            print("\r 已获取 {0} 个代理ip ...".format(len(proxies)), end='')
             if not ip:                  # 如果列表是空的跳过本次循环 这个主要是针对最上面的标签问题
                 continue
             ip = ip[0]  # xpath 提取数据以后返回的是列表
@@ -122,6 +121,7 @@ class BaseSpider(object):
             else:
                 # 可能还会有其他类型的协议
                 pass
+            print("\r 已获取 {0} 个代理ip ...".format(len(proxies)), end='')
         return proxies
 
     def test_http(self,ip_host):
