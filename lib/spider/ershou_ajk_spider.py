@@ -61,7 +61,7 @@ class ErShouAjkSpider(base_spider.BaseSpider):
         total_page = 1
         decorate_list = dict()
         ershou_ajk_list = list()
-        ershou_ajk_list.append(ErShou("区","小区","户型","面积（平米）","装修","标题","价格(万)","描述","地址"))
+        ershou_ajk_list.append(ErShou("区","小区","户型","面积（平米）","装修","标题","价格(万)","单价(万/平)","描述","链接"))
 
         page = 'https://nb.anjuke.com/sale/'
         print(page)  # 打印版块页面地址
@@ -145,6 +145,9 @@ class ErShouAjkSpider(base_spider.BaseSpider):
                         price = house_element.find('span', class_='price-det')
                         price = "".join(filter(saveNum,price.text))
                         
+                        unit_price = house_element.find('span', class_='unit-price')
+                        unit_price = "".join(filter(saveNum,price.text))
+
                         name = house_details.find('a')
                         #地址
                         url = name.get('href')
@@ -153,7 +156,7 @@ class ErShouAjkSpider(base_spider.BaseSpider):
 
                         #描述
                         desc = str.join("|",details_item).replace(',',"，")
-                        ershou = ErShou(district,community,house_type,acreage,decorate_type,name,price,desc,url)
+                        ershou = ErShou(district,community,house_type,acreage,decorate_type,name,price,unit_price,desc,url)
                         ershou_ajk_list.append(ershou)
                 except Exception as e:
                     print(e)
@@ -164,7 +167,7 @@ class ErShouAjkSpider(base_spider.BaseSpider):
 
     def start(self):
         self.today_path = create_date_path(
-            "ajk_nb", "ningbo", self.date_string)
+            "ajk_nb", self.date_string)
         t1 = time.time()  # 开始计时
         self.collect_area_ershou_data()
         t2 = time.time()
