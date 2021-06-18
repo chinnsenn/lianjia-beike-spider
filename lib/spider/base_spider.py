@@ -8,13 +8,13 @@
 import threading
 from lib.zone.city import lianjia_cities, beike_cities
 from lib.utility.date import *
-import lib.utility.version
 import random
 from lxml import etree
 import urllib
 import urllib3
-import random
 import requests
+from lib.request.proxy import *
+import os
 
 thread_pool_size = 10
 
@@ -29,6 +29,26 @@ ANJUKE_SPIDER = "nb.anjuke"
 SPIDER_NAME = BEIKE_SPIDER
 
 class BaseSpider(object):
+
+    distric_message_dict = dict()
+    is_mac = True
+
+    TRY_TIMES = 10
+    TRY_DELAY = 30
+
+    def printParallelProcess(self,threadName,message):
+        if self.mutex.acquire(1):
+            self.distric_message_dict[threadName] = message
+            total_message = "============================================================================================================================================\n"
+            total_message += "\n\n".join(str(self.distric_message_dict[key]) for key in self.distric_message_dict)
+            total_message += "\n============================================================================================================================================\n"
+            if self.is_mac:
+                os.system('clear')
+            else:
+                os.system('cls')
+            print('\r'+"{0}".format(total_message), end='', flush=True)
+            self.mutex.release()
+
     @staticmethod
     def random_delay():
         if RANDOM_DELAY:
@@ -77,52 +97,8 @@ class BaseSpider(object):
         """
         return self.cities.get(en, None)
     
-    def get_ip(self,pool_size = 10,num =1):
-        proxies = list()
-        print('正在获取代理 ip ')
-        url = 'http://www.xicidaili.com/nn/' + str(num)
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36'
-        }
-        res = urllib.request.Request(url,headers=headers)
-        response = urllib.request.urlopen(res)
-        response = response.read()
-
-        # s = requests.session()
-        # s.verify = False
-        # urllib3.disable_warnings()
-        # response = s.get(url, timeout=10000, verify=False)
-
-        html = etree.HTML(response)  # 转化这个位置 不用解码
-        ip_lists = html.xpath('//div//tr')  # 节点
-        for tem in ip_lists:
-            if len(proxies) == pool_size:
-                return proxies
-            ip = tem.xpath('./td[2]/text()')
-            if not ip:                  # 如果列表是空的跳过本次循环 这个主要是针对最上面的标签问题
-                continue
-            ip = ip[0]  # xpath 提取数据以后返回的是列表
-            host = tem.xpath('./td[3]/text()')[0]
-            tcp_type = tem.xpath('./td[6]/text()')[0]  # 获得协议类型
-
-            if tcp_type == 'HTTP':
-                # 判断是否是http协议
-                ip_host = ip + ':' + host   # 拼接将要使用的地址和端口
-                if self.test_http(ip_host):# 测试代理的有效性
-                    proxy = {'http':ip_host}
-                    proxies.append(proxy)
-
-            elif tcp_type == 'HTTPS':
-                ip_host = ip + ':' + host   # 拼接将要使用的地址和端口
-                if self.test_https(ip_host):# 测试代理的有效性
-                    proxy = {'http':ip_host}
-                    proxies.append(proxy)
-
-            else:
-                # 可能还会有其他类型的协议
-                pass
-            print("\r 已获取 {0} 个代理ip ...".format(len(proxies)), end='')
-        return proxies
+    def get_random_proxy_ip(self):
+        return get_random_proxy_ip()
 
     def test_http(self,ip_host):
         # 测试http代理是否有效

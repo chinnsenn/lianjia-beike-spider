@@ -74,11 +74,6 @@ class ErShouAjkSpider(base_spider.BaseSpider):
         html = response.content
         soup = BeautifulSoup(html, "lxml")
 
-#   <li class=''> <a href='https://nb.anjuke.com/sale/d111/?d=' rel='nofollow'>毛坯</a> </li><li class='selected'>
-#    <a href='https://nb.anjuke.com/sale/d112_123/?d=' rel='nofollow'>普通装修</a> </li><li class=''>
-#     <a href='https://nb.anjuke.com/sale/d114/?d=' rel='nofollow'>豪华装修</a> </li><li class=''>
-#     <a href='https://nb.anjuke.com/sale/d113/?d=' rel='nofollow'>精装修</a> </li>
-
         try:
             search_bottom = soup.find('div', class_='search_bottom clearfix')
             conddecoration_id = search_bottom.find(

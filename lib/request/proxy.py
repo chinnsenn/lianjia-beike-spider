@@ -4,36 +4,31 @@
 # 此代码仅供学习与交流，请勿用于商业用途。
 # 用于获取代理
 
-from bs4 import BeautifulSoup
-import requests
-from lib.request.headers import create_headers
+import random
+from lib.spider import base_spider
 
-proxys_src = []
-proxys = []
+http_proxy = [
+'http://167.71.27.73:8080',
+'http://191.234.166.244:80',
+'http://216.21.18.193:80',
+'http://51.91.157.66:80',
+'http://60.216.20.210:8001'
+]
 
+https_proxy = [
+'http://178.63.17.151:3128',
+'http://195.154.67.61:3128',
+'http://103.110.184.109:8181',
+'http://114.121.248.251:8080',
+'http://202.150.144.210:8080',
+'http://173.166.149.188:8080',
+'http://78.108.108.9:8080',
+'http://118.163.13.200:8080',
+'http://149.34.1.95:8080'
+]
 
-def spider_proxyip(num=10):
-    try:
-        url = 'http://www.xicidaili.com/nt/1'
-        req = requests.get(url, headers=create_headers())
-        source_code = req.content
-        print(source_code)
-        soup = BeautifulSoup(source_code, 'lxml')
-        ips = soup.findAll('tr')
-
-        for x in range(1, len(ips)):
-            ip = ips[x]
-            tds = ip.findAll("td")
-            proxy_host = "{0}://".format(tds[5].contents[0]) + tds[1].contents[0] + ":" + tds[2].contents[0]
-            proxy_temp = {tds[5].contents[0]: proxy_host}
-            proxys_src.append(proxy_temp)
-            if x >= num:
-                break
-    except Exception as e:
-        print("spider_proxyip exception:")
-        print(e)
-
+def get_random_proxy_ip():
+    return {"http":random.choice(http_proxy), "https":random.choice(https_proxy)}
 
 if __name__ == '__main__':
-    spider_proxyip(10)
-    print(proxys_src)
+    pass

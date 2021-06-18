@@ -10,3 +10,5 @@ numpy
 pandas
 pyecharts
 pyecharts-snapshot
+prettytable
+proxybroker

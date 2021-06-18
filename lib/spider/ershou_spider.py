@@ -25,23 +25,6 @@ import platform
 import urllib3
 
 class ErShouSpider(base_spider.BaseSpider):
-
-    distric_message_dict = dict()
-    is_mac = True
-
-    def printCurrentProcess(self,threadName,message):
-        if self.mutex.acquire(1):
-            self.distric_message_dict[threadName] = message
-            total_message = "============================================================================================================================================\n"
-            total_message += "\n".join(str(self.distric_message_dict[key]) for key in self.distric_message_dict)
-            total_message += "\n============================================================================================================================================\n"
-            if self.is_mac:
-                os.system('clear')
-            else:
-                os.system('cls')
-            print('\r'+"{0}".format(total_message), end='', flush=True)
-            self.mutex.release()
-
     def collect_area_ershou_data(self, city_name, district_name, fmt="csv"):
         """
         对于每个板块,获得这个板块下所有二手房的信息
@@ -70,9 +53,10 @@ class ErShouSpider(base_spider.BaseSpider):
                         for ershou in ershous:
                             f.write(self.date_string + "," + ershou.text() + "\n")
             
-            self.printCurrentProcess(district_name,"{0}共获取{1}条数据，已存储在{2}:".format(chinese_district,ershou_len, csv_file))
+            self.printParallelProcess(district_name,"{0}区共获取{1}条数据，已存储在{2}:".format(chinese_district,ershou_len, csv_file))
         else: 
-            self.printCurrentProcess(district_name,"{0}没有二手房数据".format(chinese_district))
+            self.printParallelProcess(district_name,"{0}没有二手房数据".format(chinese_district))
+
     def get_area_ershou_info(self, city_name, district_name):
         """
         通过爬取页面获得城市指定版块的二手房信息
@@ -91,14 +75,15 @@ class ErShouSpider(base_spider.BaseSpider):
         ershou_list = list()
         # ershou_list.append(ErShou("区","小区","户型","面积(平米)","装修","标题","价格(万)","描述","地址"))
 
-        headers = create_headers()
         for decorate_code,decorate_type in decorate_list.items():
-            page = 'http://{0}.{1}.com/ershoufang/{2}/pg1{3}'.format(city_name, base_spider.SPIDER_NAME, district_name,decorate_code)
+            page = 'https://{0}.{1}.com/ershoufang/{2}/pg1{3}'.format(city_name, base_spider.SPIDER_NAME, district_name,decorate_code)
             mock_headers = create_headers()
             urllib3.disable_warnings()
             response = requests.get(page, timeout=10000, headers=mock_headers)
             html = response.content
             soup = BeautifulSoup(html, "lxml")
+
+            proxies = self.get_random_proxy_ip()
 
             # 获得总的页数，通过查找总页码的元素信息
             try:
@@ -109,28 +94,30 @@ class ErShouSpider(base_spider.BaseSpider):
                 pass
             #第一页开始,一直遍历到最后一页
             for num in range(1, total_page + 1):
-                page = 'http://{0}.{1}.com/ershoufang/{2}/pg{3}{4}sf1sf6'.format(city_name, base_spider.SPIDER_NAME, district_name, num,decorate_code)
-                try_time = 3
+                page = 'https://{0}.{1}.com/ershoufang/{2}/pg{3}{4}sf1sf6'.format(city_name, base_spider.SPIDER_NAME, district_name, num,decorate_code)
+                try_time = self.TRY_TIMES
+                try_delay = self.TRY_DELAY
                 while(try_time > 0):
                     try:
                         currentMessage = "正在获取{0}区第{1}页，总共{2}页, 当前链接为: {3}".format(chinese_district, num, total_page, page)
-                        self.printCurrentProcess(district_name,currentMessage)
-                        ershou_sub_list = self.get_data_from_page(page, chinese_district, decorate_type)
+                        self.printParallelProcess(district_name,currentMessage)
+                        ershou_sub_list = self.get_data_from_page(proxies, page, chinese_district, decorate_type)
                         ershou_list.extend(ershou_sub_list)
                         break
                     except Exception as e:
                         try_time = try_time - 1
-                        for i in range(20):
-                            currentMessage = "{0}区第{1}页获取失败，{2}秒后重试, 当前链接为: {3}".format(chinese_district,num,i,page)
-                            self.printCurrentProcess(district_name,currentMessage)
+                        for i in range(try_delay):
+                            currentMessage = "{0}区第{1}页获取失败，{2}秒后进行第{3}次重试, 当前链接为: {4}".format(chinese_district,num,try_delay -i,10 - try_time,page)
+                            self.printParallelProcess(district_name,currentMessage)
                             sleep(1)
+                        proxies = self.get_random_proxy_ip()
         return ershou_list
 
-    def get_data_from_page(self, page, chinese_district, decorate_type):
+    def get_data_from_page(self, proxies , page, chinese_district, decorate_type):
         # print(page)  # 打印每一页的地址
         mock_headers = create_headers()
         base_spider.BaseSpider.random_delay()
-        response = requests.get(page, timeout=10000, headers=mock_headers)
+        response = requests.get(page, timeout=10000, headers=mock_headers, proxies=proxies, verify=False)
         html = response.content
         soup = BeautifulSoup(html, "lxml")
 

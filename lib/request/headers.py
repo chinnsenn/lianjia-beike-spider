@@ -32,7 +32,6 @@ def create_headers():
     headers["User-Agent"] = random.choice(USER_AGENTS)
     headers["Referer"] = "http://www.{0}.com".format(base_spider.SPIDER_NAME)
     return headers
-
-
+    
 if __name__ == '__main__':
     pass
