@@ -83,7 +83,7 @@ class ErShouSpider(base_spider.BaseSpider):
             html = response.content
             soup = BeautifulSoup(html, "lxml")
 
-            proxies = self.get_random_proxy_ip()
+            proxies = None
 
             # 获得总的页数，通过查找总页码的元素信息
             try:
