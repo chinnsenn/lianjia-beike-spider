@@ -40,7 +40,7 @@ class BaseSpider(object):
         if self.mutex.acquire(1):
             self.distric_message_dict[threadName] = message
             total_message = "============================================================================================================================================\n"
-            total_message += "\n\n".join(str(self.distric_message_dict[key]) for key in self.distric_message_dict)
+            total_message += "\n".join(str(self.distric_message_dict[key]) for key in self.distric_message_dict)
             total_message += "\n============================================================================================================================================\n"
             if self.is_mac:
                 os.system('clear')
